@@ -1,6 +1,6 @@
-package world;
+package game.world;
 
-import world.enums.TileType;
+import game.world.enums.TileType;
 
 public class Tile {
 
