@@ -18,7 +18,7 @@ public class animation_arara {
     public animation_arara(String fileName) {
         try {
             File file = new File(fileName);
-            
+
             // Se não encontrar no caminho padrão, tenta com o prefixo do projeto
             if (!file.exists()) {
                 file = new File("forrest_defend/" + fileName);
@@ -30,7 +30,7 @@ public class animation_arara {
             }
 
             spriteSheet = ImageIO.read(file);
-            
+
             if (spriteSheet == null) {
                 throw new IOException("Arquivo de imagem inválido: " + fileName);
             }

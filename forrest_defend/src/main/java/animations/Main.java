@@ -28,7 +28,7 @@ public class Main extends JPanel {
         // Desenha a animação centralizada horizontalmente e bem no topo (y=10)
         if (anim != null) {
             // Centro exato: (Janela / 2) - (Largura da Arara / 2)
-            int x = (getWidth() - anim.getFrameWidth()) / 2; 
+            int x = (getWidth() - anim.getFrameWidth()) / 2;
             int y = 10; // Quase encostado no topo
             anim.render(g, x, y);
         }
