@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/forrest_defend/forrest_defend.iml" filepath="$PROJECT_DIR$/forrest_defend/forrest_defend.iml" />
+      <module fileurl="file://$PROJECT_DIR$/forrest_defend.iml" filepath="$PROJECT_DIR$/forrest_defend.iml" />
     </modules>
   </component>
 </project>
