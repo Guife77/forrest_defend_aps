@@ -6,16 +6,25 @@ import java.awt.image.BufferStrategy;
 
 import game.core.GameLoop;
 import game.core.GameWindow;
+import game.world.GameMap;
+import game.world.MapLoader;
+import game.world.Tile;
+import game.world.enums.TileType;
 
 public class Game {
 
     private GameWindow window;
     private GameLoop loop;
     private int x = 100;
+    private GameMap map;
+    private MapLoader loader;
 
     public Game(){
         window = new GameWindow("Tower Defense", 800, 600);
         loop = new GameLoop(this);
+        map = new GameMap(5, 8);
+        loader = new MapLoader();
+        loader.load(map);
         loop.start();
     }
 
@@ -30,12 +39,23 @@ public class Game {
 
         Graphics g = bs.getDrawGraphics();
 
-        g.setColor(Color.DARK_GRAY);
-        g.fillRect(0, 0, 800, 600);
+        int tileSize = 80;
 
-        g.setColor(Color.ORANGE);
-        g.fillRect(x, 100, 50, 50);
+        for (int i = 0; i < map.getRows(); i++) {
+            for (int j = 0; j < map.getCols(); j++) {
+                Tile tile = map.getTile(i, j);
 
+                if (tile.getType() == TileType.GRASS) {
+                    g.setColor(new Color(34, 139, 34));
+                } else if (tile.getType() == TileType.PATH) {
+                    g.setColor(new Color(194, 178, 128));
+                } else {
+                    g.setColor(new Color(220, 50, 50));
+                }
+
+                g.fillRect(j * tileSize, i * tileSize, tileSize, tileSize);
+            }
+        }
         g.dispose();
         bs.show();
     }

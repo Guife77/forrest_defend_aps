@@ -24,4 +24,8 @@ public class GameMap {
         return this.tile[row][col];
     }
 
+    public void setTile(int row, int col, Tile tile){
+        this.tile[row][col] = tile;
+    }
+
 }
