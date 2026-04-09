@@ -1,6 +1,6 @@
-package core;
+package game.core;
 
-import application.Game;
+import game.application.Game;
 
 public class GameLoop implements Runnable {
 

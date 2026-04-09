@@ -1,4 +1,4 @@
-package world.enums;
+package game.world.enums;
 
 public enum TileType {
 

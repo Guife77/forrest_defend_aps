@@ -1,11 +1,11 @@
-package application;
+package game.application;
 
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferStrategy;
 
-import core.GameLoop;
-import core.GameWindow;
+import game.core.GameLoop;
+import game.core.GameWindow;
 
 public class Game {
 
