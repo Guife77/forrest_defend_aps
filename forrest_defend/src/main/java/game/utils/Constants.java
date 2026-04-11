@@ -29,4 +29,20 @@ public final class Constants {
     public static final int POLLUTION_REWARD_RF = 35;
 
     public static final int WAVE_SPAWN_INTERVAL_TICKS = 60;
+
+    // STATUS DAS DEFESAS
+
+    public static final double BIRD_HP = 50.0;
+    public static final int BIRD_DAMAGE = 15;
+    public static final double BIRD_RANGE = 120.0;
+
+
+    public static final double TREE_HP = 100.0;
+    public static final int TREE_DAMAGE = 10;
+    public static final double TREE_RANGE = 100.0;
+
+
+    public static final double BARRIER_HP = 500.0;
+    public static final int BARRIER_DAMAGE = 0;
+    public static final double BARRIER_RANGE = 0.0;
 }
