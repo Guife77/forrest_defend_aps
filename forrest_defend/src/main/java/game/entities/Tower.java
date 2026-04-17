@@ -33,7 +33,7 @@ public abstract class Tower {
 
     public abstract void attack(List<Enemy> enemies);
 
-    /
+
     public abstract void takeDamage(double damage, AttackType attackType);
 
 
