@@ -15,43 +15,6 @@ public class animation_arara {
     private long lastTime, timer;
     private int speed = 120;
 
-    /**
-     * Carrega frames individuais a partir de um nome base e quantidade de frames.
-     * Ex: baseName="arara", frameCount=4 → arara1.png, arara2.png, arara3.png, arara4.png
-     */
-    public animation_arara(String baseName, int frameCount) {
-        this.totalFrames = frameCount;
-        frames = new BufferedImage[totalFrames];
-        for (int i = 1; i <= frameCount; i++) {
-            String frameName = baseName + i + ".png";
-            String[] candidatos = {
-                frameName,
-                "public/" + frameName,
-                "forrest_defend/public/" + frameName
-            };
-            boolean carregado = false;
-            for (String caminho : candidatos) {
-                File file = new File(caminho);
-                if (file.exists()) {
-                    try {
-                        frames[i - 1] = ImageIO.read(file);
-                        carregado = true;
-                        break;
-                    } catch (IOException e) {
-                        System.err.println("Erro ao ler frame: " + caminho);
-                    }
-                }
-            }
-            if (!carregado) {
-                System.err.println("Frame não encontrado: " + frameName);
-            }
-        }
-        lastTime = System.currentTimeMillis();
-    }
-
-    /**
-     * Carrega um sprite sheet único e divide em frames horizontalmente.
-     */
     public animation_arara(String fileName) {
         try {
             File file = new File(fileName);
