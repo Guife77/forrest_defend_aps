@@ -2,10 +2,10 @@ package animations;
 
 import java.awt.*;
 
-public class Escavadeira {
+public class Macaco {
     private final animation_arara animation;
 
-    public Escavadeira(String baseName, int frameCount) {
+    public Macaco(String baseName, int frameCount) {
         animation = new animation_arara(baseName, frameCount);
     }
 
