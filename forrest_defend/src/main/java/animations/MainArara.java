@@ -5,7 +5,7 @@ import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
-public class MainArara extends JPanel {
+public class Main extends JPanel {
     private animation_arara arara;
     private Escavadeira escavadeira;
     private Macaco macaco;
@@ -13,13 +13,15 @@ public class MainArara extends JPanel {
     // Controle de exibição: 0=Tudo, 1=Arara, 2=Escavadeira, 3=Macaco
     private int viewMode = 0;
 
-    public MainArara() {
-        // Carrega frames individuais: arara1.png, arara2.png, arara3.png, arara4.png
+    public Main() {
+        // Caminhos das imagens
+        String pathEscavadeira = "forrest_defend/public/escavadeira.png";
+        String pathMacaco = "forrest_defend/public/macaco.png";
+
+        // Agora a Arara carrega arara1.png, arara2.png...
         arara = new animation_arara("arara", 4);
-        // Carrega frames individuais: escavadeira1.png ... escavadeira4.png
-        escavadeira = new Escavadeira("escavadeira", 4);
-        // Macaco não possui assets ainda; carrega sem exibir nada
-        macaco = new Macaco("macaco", 4);
+        escavadeira = new Escavadeira(pathEscavadeira);
+        macaco = new Macaco(pathMacaco);
 
         // Timer de 60 FPS
         Timer timer = new Timer(16, e -> {
@@ -64,11 +66,11 @@ public class MainArara extends JPanel {
 
         // Renderização
         if (viewMode == 0 || viewMode == 1) {
-            if (arara != null) arara.render(g2d, centerX - 50, 50);
+            arara.render(g2d, centerX - 50, 50);
         }
 
         if (viewMode == 0 || viewMode == 2) {
-            if (escavadeira != null) escavadeira.render(g2d, centerX - 100, 200);
+            escavadeira.render(g2d, centerX - 100, 200);
         }
 
         if (viewMode == 0 || viewMode == 3) {
@@ -80,7 +82,7 @@ public class MainArara extends JPanel {
 
     public static void main(String[] args) {
         JFrame frame = new JFrame("Forrest Defend - Visualizador de Sprites");
-        MainArara gamePanel = new MainArara();
+        Main gamePanel = new Main();
         frame.add(gamePanel);
         frame.setSize(800, 700);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
