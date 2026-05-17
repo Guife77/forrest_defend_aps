@@ -14,6 +14,8 @@ import game.ui.HUD;
 import game.utils.Constants;
 import game.world.GameMap;
 import game.world.MapLoader;
+import game.ui.Menu;
+import game.utils.AudioPlayer;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -32,6 +34,8 @@ public class GameEngine extends MouseAdapter {
     private WaveManager waveManager;
     private List<Enemy> enemies;
     private List<Tower> towers;
+    private Menu menu;
+    private boolean inMenu;
 
     // Caminho que os inimigos seguem (waypoints do MapLoader — fixo)
     private List<Point> path;
@@ -85,17 +89,15 @@ public class GameEngine extends MouseAdapter {
         enemyRenderer = new EnemyRenderer();
         towerRenderer = new TowerRenderer();
         hud           = new HUD();
+        menu          = new Menu();  
+        inMenu        = true;
     }
 
     // ── UPDATE ────────────────────────────────────────────────────
 
     public void update() {
+        if (inMenu) return; 
         if (gameOver || victory) return;
-
-        if (++manaTick >= Constants.FPS) {
-            player.addMana(Constants.MANA_REGEN_PER_SECOND);
-            manaTick = 0;
-        }
 
         if (feedbackTicks > 0) feedbackTicks--;
         else feedbackMsg = null;
@@ -161,6 +163,11 @@ public class GameEngine extends MouseAdapter {
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
+        if (inMenu) {
+            menu.render(g2, SCREEN_W, SCREEN_H);
+            return; 
+        }
+
         mapRenderer.render(g2, map);
         mapRenderer.renderPath(g2, path);
         towerRenderer.render(g2, towers, showRanges);
@@ -186,6 +193,13 @@ public class GameEngine extends MouseAdapter {
     // ── TECLADO ───────────────────────────────────────────────────
 
     public void onKeyPressed(int keyCode) {
+        if (inMenu) {
+            if (keyCode == KeyEvent.VK_ENTER) {
+                inMenu = false; // Abre a cortina!
+            }
+            return; // Impede que outras teclas façam algo no menu
+        }
+
         switch (keyCode) {
             case KeyEvent.VK_SPACE:
                 if (!gameOver && !victory && !waveManager.isWaveActive())
@@ -200,13 +214,14 @@ public class GameEngine extends MouseAdapter {
                 break;
             case KeyEvent.VK_ESCAPE: System.exit(0);
         }
+        
     }
 
     // ── MOUSE ─────────────────────────────────────────────────────
 
     @Override
     public void mouseClicked(MouseEvent e) {
-        if (gameOver || victory) return;
+        if (inMenu || gameOver || victory) return;
 
         int col = e.getX() / TILE;
         int row = e.getY() / TILE;
@@ -232,6 +247,8 @@ public class GameEngine extends MouseAdapter {
         if (nova == null) return;
 
         towers.add(nova);
+
+        AudioPlayer.play("public/construir.wav");
 
         // Registra o tile que a barreira ocupa no PATH
         if (nova instanceof BarrierDefense && tileType == game.world.enums.TileType.PATH) {

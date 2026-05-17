@@ -6,6 +6,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import game.utils.AudioPlayer;
 
 /**
  * Ponto de entrada do jogo.
@@ -29,6 +30,8 @@ public class GameWindow extends JPanel {
                 engine.onKeyPressed(e.getKeyCode());
             }
         });
+
+        AudioPlayer.playLoop("public/trilha.wav");
 
         // Loop 60 FPS
         new Timer(1000 / 60, e -> {
