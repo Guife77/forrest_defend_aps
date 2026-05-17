@@ -15,7 +15,7 @@ import java.util.Random;
  */
 public class MapRenderer {
 
-    // ── Paleta de cores ──────────────────────────────────────────
+    // Paleta de cores
     private static final Color GRASS_BASE    = new Color(46, 125, 50);
     private static final Color GRASS_DARK    = new Color(27, 94,  32);
     private static final Color GRASS_LIGHT   = new Color(76, 153, 56);
@@ -43,7 +43,7 @@ public class MapRenderer {
 
     private static final Color GRID_LINE     = new Color(0, 0, 0, 18);
 
-    // ── Geração determinística de decorações ─────────────────────
+
     private boolean decorationsBuilt = false;
     private int[]   treeX, treeY, treeR;
     private int[]   bushX, bushY;
@@ -56,9 +56,8 @@ public class MapRenderer {
         this.tileSize = tileSize;
     }
 
-    // ─────────────────────────────────────────────────────────────
+
     //  RENDER PRINCIPAL
-    // ─────────────────────────────────────────────────────────────
 
     public void render(Graphics2D g, GameMap map) {
         int rows = map.getRows();
@@ -106,9 +105,9 @@ public class MapRenderer {
         g.setStroke(new BasicStroke(1));
     }
 
-    // ─────────────────────────────────────────────────────────────
+
     //  DETALHES INTERNOS
-    // ─────────────────────────────────────────────────────────────
+
 
     private void setupHints(Graphics2D g) {
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,   RenderingHints.VALUE_ANTIALIAS_ON);

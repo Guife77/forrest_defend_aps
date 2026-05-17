@@ -60,7 +60,7 @@ public class MapLoader {
      * Entrada col 0 row 2 → ... → BASE col 1 row 13.
      */
     private static final int[][] WAYPOINTS = {
-            // Entrada (0,4) vai direto até a primeira alça (12,4), passando reto pelo cruzamento em (8,4)
+
             {0,4}, {1,4}, {2,4}, {3,4}, {4,4}, {5,4}, {6,4}, {7,4}, {8,4}, {9,4}, {10,4}, {11,4}, {12,4},
 
             // Sobe a primeira alça
