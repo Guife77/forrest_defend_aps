@@ -5,6 +5,8 @@ import game.entities.Player;
 import game.utils.Constants;
 
 import java.awt.*;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 
 public class HUD {
 
@@ -114,14 +116,23 @@ public class HUD {
         g.setFont(new Font("Arial", Font.BOLD, 14));
         int txtW = g.getFontMetrics().stringWidth(waveText);
 
-        int boxX = (screenW - txtW) / 2 - 20;
-        g.setColor(new Color(15, 20, 15, 200));
-        g.fillRoundRect(boxX, 15, txtW + 40, 32, 12, 12);
-        g.setColor(new Color(60, 80, 60));
-        g.drawRoundRect(boxX, 15, txtW + 40, 32, 12, 12);
+        // ── NOVO POSICIONAMENTO: Canto Superior Direito ──
+        int boxW = txtW + 40;
+        int boxH = 32;
+        int boxX = screenW - boxW - 15; // 15 pixels de distância da borda direita da tela
+        int boxY = 15;                  // 15 pixels de distância do teto
 
+        // Desenha o fundo da caixa
+        g.setColor(new Color(15, 20, 15, 200));
+        g.fillRoundRect(boxX, boxY, boxW, boxH, 12, 12);
+        
+        // Desenha a borda da caixa
+        g.setColor(new Color(60, 80, 60));
+        g.drawRoundRect(boxX, boxY, boxW, boxH, 12, 12);
+
+        // Desenha o texto perfeitamente centralizado dentro da nova caixa
         g.setColor(waveColor);
-        g.drawString(waveText, (screenW - txtW) / 2, 37);
+        g.drawString(waveText, boxX + 20, boxY + 22);
     }
 
     private void drawTowerCard(Graphics2D g, String name, String cost, boolean selected, 
@@ -154,25 +165,106 @@ public class HUD {
     }
 
     public void renderGameOver(Graphics2D g, int w, int h, int wave) {
-        g.setColor(new Color(15, 15, 15, 225));
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        // 1. Fundo Gradiente Radial (Efeito Vignette de Derrota)
+        // Centro: Cinza escuro | Bordas: Preto absoluto (trazendo o clima de luto/fim)
+        Point2D center = new Point2D.Float(w / 2f, h / 2f);
+        float radius = Math.max(w, h);
+        float[] dist = {0.0f, 0.8f};
+        Color[] colors = {new Color(30, 30, 30, 200), new Color(0, 0, 0, 245)};
+        RadialGradientPaint p = new RadialGradientPaint(center, radius, dist, colors);
+        g.setPaint(p);
         g.fillRect(0, 0, w, h);
-        g.setFont(new Font("Arial", Font.BOLD, 54));
-        g.setColor(new Color(192, 41, 43));
-        drawCentered(g, "FIM DE JOGO", w, h / 2 - 20);
+
+        // 2. Painel Central (Card de Derrota com borda vermelha fogo/sangue)
+        int pW = 550; // Largura do painel
+        int pH = 180; // Altura do painel
+        int pX = (w - pW) / 2;
+        int pY = (h - pH) / 2;
+        
+        // Fundo do card (quase preto opaco)
+        g.setColor(new Color(15, 10, 10, 230)); 
+        g.fillRoundRect(pX, pY, pW, pH, 15, 15);
+        // Borda brilhante vermelha
+        g.setColor(new Color(231, 76, 60)); // Vermelho Flat combativo
+        g.setStroke(new BasicStroke(3));
+        g.drawRoundRect(pX, pY, pW, pH, 15, 15);
+        g.setStroke(new BasicStroke(1)); // Reseta espessura
+
+
+        // 3. Tipografia e Conteúdo (Alinhado)
+        // Linha 1: Título Principal
+        g.setFont(new Font("Arial", Font.BOLD, 52));
+        g.setColor(new Color(231, 76, 60)); // Mesmo vermelho da borda
+        drawCentered(g, "✕ A BASE CAIU ✕", w, pY + 65);
+
+        // Linha 2: Descrição da tragédia e info da Wave
         g.setFont(new Font("Arial", Font.PLAIN, 18));
-        g.setColor(Color.WHITE);
-        drawCentered(g, "A floresta foi derrubada na wave " + wave + "  |  [R] Reiniciar", w, h / 2 + 30);
+        g.setColor(new Color(220, 220, 220)); // Branco suave
+        String desc = "A floresta foi derrubada na WAVE " + wave;
+        drawCentered(g, desc, w, pY + 110);
+
+        // Linha auxiliar de história
+        g.setFont(new Font("Arial", Font.ITALIC, 14));
+        g.setColor(new Color(180, 150, 150)); // Cinza avermelhado
+        drawCentered(g, "Os invasores venceram esta batalha...", w, pY + 130);
+
+        // Linha 3: Controles Separados e discretos
+        g.setFont(new Font("Arial", Font.BOLD, 12));
+        g.setColor(new Color(150, 150, 150)); // Cinza secundário
+        drawCentered(g, "Pressione [ R ] para Tentar Novamente   |   [ ESC ] Sair", w, pY + 165);
     }
 
     public void renderVictory(Graphics2D g, int w, int h) {
-        g.setColor(new Color(10, 28, 16, 215));
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        // 1. Fundo Gradiente Radial (Efeito Vignette de Sucesso)
+        // Centro: Verde Amazônia profundo | Bordas: Preto (Luz no centro da floresta)
+        Point2D center = new Point2D.Float(w / 2f, h / 2f);
+        float radius = Math.max(w, h);
+        float[] dist = {0.0f, 0.7f};
+        Color[] colors = {new Color(20, 50, 30, 210), new Color(0, 0, 0, 240)};
+        RadialGradientPaint p = new RadialGradientPaint(center, radius, dist, colors);
+        g.setPaint(p);
         g.fillRect(0, 0, w, h);
-        g.setFont(new Font("Arial", Font.BOLD, 50));
-        g.setColor(new Color(46, 204, 113));
-        drawCentered(g, "FLORESTA PROTEGIDA!", w, h / 2 - 20);
+
+        // 2. Painel Central (Card de Vitória com borda dourada/luz)
+        int pW = 600;
+        int pH = 180;
+        int pX = (w - pW) / 2;
+        int pY = (h - pH) / 2;
+        
+        // Fundo do card (quase preto opaco)
+        g.setColor(new Color(10, 15, 12, 230)); 
+        g.fillRoundRect(pX, pY, pW, pH, 15, 15);
+        // Borda dourada brilhante
+        g.setColor(new Color(241, 196, 15)); // Amarelo Dourado Flat
+        g.setStroke(new BasicStroke(3));
+        g.drawRoundRect(pX, pY, pW, pH, 15, 15);
+        g.setStroke(new BasicStroke(1));
+
+
+        // 3. Tipografia e Conteúdo (Alinhado)
+        // Linha 1: Título Principal
+        g.setFont(new Font("Arial", Font.BOLD, 48));
+        g.setColor(new Color(46, 204, 113)); // Verde Flat vibrante
+        drawCentered(g, "✦ FLORESTA PROTEGIDA! ✦", w, pY + 65);
+
+        // Linha 2: Descrição da Conquista
         g.setFont(new Font("Arial", Font.PLAIN, 18));
-        g.setColor(Color.WHITE);
-        drawCentered(g, "Conseguiste repelir os invasores da Amazónia!  |  [R] Jogar de Novo", w, h / 2 + 30);
+        g.setColor(new Color(220, 220, 220)); // Branco suave
+        drawCentered(g, "Conseguiste expelir todos os invasores da Amazônia!", w, pY + 105);
+
+        // Linha auxiliar de história
+        g.setFont(new Font("Arial", Font.ITALIC, 14));
+        g.setColor(new Color(150, 180, 150)); // Cinza esverdeado
+        drawCentered(g, "A natureza agradece o teu comando sagaz.", w, pY + 125);
+
+        // Linha 3: Controles Separados e discretos
+        g.setFont(new Font("Arial", Font.BOLD, 12));
+        g.setColor(new Color(150, 150, 150)); // Cinza secundário
+        drawCentered(g, "Pressione [ R ] para Novo Jogo   |   [ ESC ] Sair", w, pY + 165);
     }
 
     private void drawCentered(Graphics2D g, String text, int w, int y) {

@@ -7,7 +7,6 @@ import game.entities.Enemy;
 import game.entities.Player;
 import game.entities.Tower;
 import game.map.MapRenderer;
-import game.map.PathFinder;
 import game.renderer.EnemyRenderer;
 import game.renderer.TowerRenderer;
 import game.ui.HUD;
@@ -55,11 +54,8 @@ public class GameEngine extends MouseAdapter {
     private boolean showRanges    = false;
     private boolean gameOver      = false;
     private boolean victory       = false;
-
     private String feedbackMsg   = null;
     private int    feedbackTicks = 0;
-    private int    manaTick      = 0;
-
     public GameEngine() { init(); }
 
     // ── INIT ──────────────────────────────────────────────────────
@@ -74,7 +70,6 @@ public class GameEngine extends MouseAdapter {
         waveManager    = new WaveManager(TILE);
         gameOver       = false;
         victory        = false;
-        manaTick       = 0;
         feedbackMsg    = null;
 
         int cols = SCREEN_W / TILE;

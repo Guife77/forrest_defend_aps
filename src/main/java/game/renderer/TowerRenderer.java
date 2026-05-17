@@ -34,6 +34,14 @@ public class TowerRenderer {
             if (!t.isAlive()) continue;
             int tx = (int) t.getX(), ty = (int) t.getY();
 
+            // ── SOLUÇÃO: Intercepta a Arara antes de desenhar qualquer círculo de fundo ──
+            if (t instanceof BirdDefense) {
+                g.setStroke(new BasicStroke(1));
+                t.render(g); // Desenha puramente a animação da Arara
+                drawHp(g, t, tx, ty); // Desenha a barra de vida dela
+                continue; // Pula todo o resto do código para não criar o fundo azul!
+            }
+
             Color c = color(t);
 
             if (t instanceof BarrierDefense) {
@@ -44,7 +52,7 @@ public class TowerRenderer {
                 g.setStroke(new BasicStroke(2));
                 g.drawRect(tx - R, ty - R, R * 2, R * 2);
             } else {
-                // Árvore / Arara: círculo com sombra
+                // Árvore: círculo com sombra (A Arara não entra mais aqui!)
                 g.setColor(new Color(0, 0, 0, 50));
                 g.fillOval(tx - R + 2, ty - R + 2, R * 2, R * 2);
                 g.setColor(c);
@@ -52,18 +60,10 @@ public class TowerRenderer {
                 g.setColor(c.darker());
                 g.setStroke(new BasicStroke(2));
                 g.drawOval(tx - R, ty - R, R * 2, R * 2);
-
-                // Para BirdDefense, usa o próprio render dela (sprite)
-                if (t instanceof BirdDefense) {
-                    g.setStroke(new BasicStroke(1));
-                    t.render(g); // delega para o render da BirdDefense
-                    drawHp(g, t, tx, ty);
-                    continue;
-                }
             }
 
             g.setStroke(new BasicStroke(1));
-            // Ícone
+            // Ícone para as outras torres
             g.setColor(Color.WHITE);
             g.setFont(new Font("Arial", Font.BOLD, 11));
             g.drawString(icon(t), tx - 4, ty + 4);

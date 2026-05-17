@@ -5,7 +5,6 @@ import game.entities.Enemy;
 import game.entities.Tower;
 import game.utils.Constants;
 
-import java.awt.*;
 import java.util.List;
 
 public class BarrierDefense extends Tower {
