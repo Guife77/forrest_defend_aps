@@ -1,5 +1,7 @@
 package game.animation;
 
+import game.utils.GameClock;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -27,7 +29,7 @@ public class Acacu {
 
     private final int DRAW_W = 64;
     private final int DRAW_H = 80;
-    private final long birth = System.currentTimeMillis();
+    private final long birth = GameClock.now();
 
     public Acacu() {
         idleFrame   = loadFrame("acacu1.png");
@@ -52,11 +54,11 @@ public class Acacu {
 
     public void playAttack() {
         attacking = true;
-        attackStart = System.currentTimeMillis();
+        attackStart = GameClock.now();
     }
 
     public void update() {
-        if (attacking && System.currentTimeMillis() - attackStart > ATTACK_DURATION_MS) {
+        if (attacking && GameClock.now() - attackStart > ATTACK_DURATION_MS) {
             attacking = false;
         }
     }
@@ -65,7 +67,7 @@ public class Acacu {
         BufferedImage frame = attacking ? attackFrame : idleFrame;
         if (frame == null) return;
 
-        long now = System.currentTimeMillis();
+        long now = GameClock.now();
         long age = now - birth;
 
         // Sway lento no idle (oscilação lateral suave)

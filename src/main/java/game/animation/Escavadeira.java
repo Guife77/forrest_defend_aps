@@ -1,5 +1,7 @@
 package game.animation;
 
+import game.utils.GameClock;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -24,7 +26,7 @@ public class Escavadeira {
         this.totalFrames = frameCount;
         frames = new BufferedImage[frameCount];
         loadFrames(baseName);
-        lastTime = System.currentTimeMillis();
+        lastTime = GameClock.now();
     }
 
     private void loadFrames(String baseName) {
@@ -51,7 +53,7 @@ public class Escavadeira {
     }
 
     public void update() {
-        long now = System.currentTimeMillis();
+        long now = GameClock.now();
         if (now - lastTime > speed) {
             currentFrame = (currentFrame + 1) % totalFrames;
             lastTime = now;

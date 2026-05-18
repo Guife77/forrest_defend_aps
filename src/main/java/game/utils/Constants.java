@@ -33,17 +33,17 @@ public final class Constants {
     public static final int    POLLUTION_REWARD_RF     = 35;
 
     // Defesas
-    public static final double BIRD_HP     = 50.0;
-    public static final int    BIRD_DAMAGE = 15;
-    public static final double BIRD_RANGE  = 120.0;
+    public static final double BIRD_HP     = 60.0;
+    public static final int    BIRD_DAMAGE = 28;
+    public static final double BIRD_RANGE  = 140.0;
 
-    public static final double SPIDER_HP     = 70.0;
-    public static final int    SPIDER_DAMAGE = 8;
-    public static final double SPIDER_RANGE  = 90.0;
+    public static final double SPIDER_HP     = 80.0;
+    public static final int    SPIDER_DAMAGE = 18;
+    public static final double SPIDER_RANGE  = 100.0;
 
-    public static final double TREE_HP     = 100.0;
-    public static final int    TREE_DAMAGE = 10;
-    public static final double TREE_RANGE  = 100.0;
+    public static final double TREE_HP     = 130.0;
+    public static final int    TREE_DAMAGE = 22;
+    public static final double TREE_RANGE  = 110.0;
 
     public static final double BARRIER_HP    = 500.0;
     public static final int    BARRIER_DAMAGE = 0;

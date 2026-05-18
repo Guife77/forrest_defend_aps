@@ -35,8 +35,9 @@ public class TowerRenderer {
             if (!t.isAlive()) continue;
             int tx = (int) t.getX(), ty = (int) t.getY();
 
-            // Intercepta torres com sprite animado (Arara, Aranha, Açaçu)
-            if (t instanceof BirdDefense || t instanceof SpiderDefense || t instanceof TreeDefense) {
+            // Intercepta torres com sprite animado (Arara, Aranha, Açaçu, Barreira)
+            if (t instanceof BirdDefense || t instanceof SpiderDefense || t instanceof TreeDefense
+                    || t instanceof BarrierDefense) {
                 g.setStroke(new BasicStroke(1));
                 t.render(g);
                 drawHp(g, t, tx, ty);
@@ -45,14 +46,7 @@ public class TowerRenderer {
 
             Color c = color(t);
 
-            if (t instanceof BarrierDefense) {
-                // Barreira: quadrado marrom
-                g.setColor(c);
-                g.fillRect(tx - R, ty - R, R * 2, R * 2);
-                g.setColor(c.darker());
-                g.setStroke(new BasicStroke(2));
-                g.drawRect(tx - R, ty - R, R * 2, R * 2);
-            } else {
+            {
                 // Árvore: círculo com sombra (A Arara não entra mais aqui!)
                 g.setColor(new Color(0, 0, 0, 50));
                 g.fillOval(tx - R + 2, ty - R + 2, R * 2, R * 2);

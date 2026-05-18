@@ -1,5 +1,7 @@
 package game.animation;
 
+import game.utils.GameClock;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -15,7 +17,7 @@ public class Poluicao {
     private BufferedImage img;
     private final int DRAW_W = 38;
     private final int DRAW_H = 38;
-    private final long birth = System.currentTimeMillis();
+    private final long birth = GameClock.now();
 
     public Poluicao() {
         String[] candidates = {
@@ -35,7 +37,7 @@ public class Poluicao {
     public void render(Graphics g, int x, int y) {
         if (img == null) return;
         Graphics2D g2 = (Graphics2D) g.create();
-        long t = System.currentTimeMillis() - birth;
+        long t = GameClock.now() - birth;
         int bob = (int) (Math.sin(t * 0.005) * 3);
         float alpha = 0.85f + 0.15f * (float) Math.sin(t * 0.006);
         g2.setComposite(java.awt.AlphaComposite.getInstance(

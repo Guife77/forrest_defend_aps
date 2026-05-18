@@ -19,7 +19,7 @@ public class SpiderDefense extends Tower {
                 Constants.SPIDER_DAMAGE,
                 Constants.SPIDER_RANGE,
                 AttackType.POISON);
-        this.attackCooldownMax = 30;
+        this.attackCooldownMax = 22;
         anim = new Aranha("aranha");
     }
 

@@ -13,6 +13,7 @@ import game.renderer.TowerRenderer;
 import game.ui.CuriosityScreen;
 import game.ui.HUD;
 import game.utils.Constants;
+import game.utils.GameClock;
 import game.world.GameMap;
 import game.world.MapLoader;
 import game.ui.Menu;
@@ -68,6 +69,7 @@ public class GameEngine extends MouseAdapter {
     // ── INIT ──────────────────────────────────────────────────────
 
     private void init() {
+        GameClock.reset();
         player         = new Player(Constants.INITIAL_MANA,
                 Constants.INITIAL_FOREST_RESOURCES,
                 Constants.INITIAL_BASE_HEALTH);
@@ -100,8 +102,11 @@ public class GameEngine extends MouseAdapter {
     // ── UPDATE ────────────────────────────────────────────────────
 
     public void update() {
-        if (inMenu) return; 
+        if (inMenu) return;
         if (gameOver || victory) return;
+
+        // Avança o relógio do mundo (sincroniza animações com speed multiplier)
+        GameClock.tick();
 
         if (feedbackTicks > 0) feedbackTicks--;
         else feedbackMsg = null;
@@ -288,9 +293,15 @@ public class GameEngine extends MouseAdapter {
         var tileType = tile.getType();
 
         // Torres normais só em GRASS
-        if (selectedTower != 'B' && tileType != game.world.enums.TileType.GRASS) return;
-        // Barreira não pode ir na BASE
-        if (selectedTower == 'B' && tileType == game.world.enums.TileType.BASE) return;
+        if (selectedTower != 'B' && tileType != game.world.enums.TileType.GRASS) {
+            showFeedback("Torres só podem ser construídas na grama!");
+            return;
+        }
+        // Barreira tem que ir no CAMINHO (PATH) — é onde ela trava os inimigos
+        if (selectedTower == 'B' && tileType != game.world.enums.TileType.PATH) {
+            showFeedback("Barreira só pode ser colocada no caminho!");
+            return;
+        }
 
         double px = col * TILE + TILE / 2.0;
         double py = row * TILE + TILE / 2.0;

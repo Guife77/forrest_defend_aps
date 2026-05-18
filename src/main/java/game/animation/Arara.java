@@ -1,5 +1,7 @@
 package game.animation;
 
+import game.utils.GameClock;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -21,7 +23,7 @@ public class Arara {
     public Arara(String baseName) {
         frames = new BufferedImage[4];
         loadFrames(baseName);
-        lastTime = System.currentTimeMillis();
+        lastTime = GameClock.now();
     }
 
     private void loadFrames(String baseName) {
@@ -57,12 +59,12 @@ public class Arara {
             attacking = true;
             currentFrame = 2;
             attackTickCount = 0;
-            lastTime = System.currentTimeMillis();
+            lastTime = GameClock.now();
         }
     }
 
     public void update() {
-        long now = System.currentTimeMillis();
+        long now = GameClock.now();
         if (now - lastTime > speed) {
             if (attacking) {
                 currentFrame++;
@@ -104,7 +106,7 @@ public class Arara {
         }
 
         // Bobbing leve no idle
-        long t = System.currentTimeMillis();
+        long t = GameClock.now();
         int bob = attacking ? 0 : (int) (Math.sin(t * 0.005) * 2);
         // Escala leve no ataque (golpe)
         float scale = attacking ? 1.15f : 1.0f;

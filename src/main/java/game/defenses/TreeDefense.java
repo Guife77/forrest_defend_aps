@@ -19,7 +19,7 @@ public class TreeDefense extends Tower {
                 Constants.TREE_DAMAGE,
                 Constants.TREE_RANGE,
                 AttackType.PHYSICAL);
-        this.attackCooldownMax = 45;
+        this.attackCooldownMax = 32;
         this.anim = new Acacu();
     }
 

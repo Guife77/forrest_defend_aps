@@ -19,7 +19,7 @@ public class BirdDefense extends Tower {
                 Constants.BIRD_DAMAGE,
                 Constants.BIRD_RANGE,
                 AttackType.PROJECTILE);
-        this.attackCooldownMax = 40;
+        this.attackCooldownMax = 28;
         anim = new Arara("arara"); // Carrega a base do nome "arara"
     }
 

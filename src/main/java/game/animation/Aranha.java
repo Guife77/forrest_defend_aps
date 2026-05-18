@@ -1,5 +1,7 @@
 package game.animation;
 
+import game.utils.GameClock;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -21,7 +23,7 @@ public class Aranha {
     public Aranha(String baseName) {
         frames = new BufferedImage[4];
         loadFrames(baseName);
-        lastTime = System.currentTimeMillis();
+        lastTime = GameClock.now();
     }
 
     private void loadFrames(String baseName) {
@@ -49,12 +51,12 @@ public class Aranha {
             attacking = true;
             currentFrame = 2;
             attackTickCount = 0;
-            lastTime = System.currentTimeMillis();
+            lastTime = GameClock.now();
         }
     }
 
     public void update() {
-        long now = System.currentTimeMillis();
+        long now = GameClock.now();
         if (now - lastTime > speed) {
             if (attacking) {
                 currentFrame = (currentFrame == 2) ? 3 : 2;
@@ -74,7 +76,7 @@ public class Aranha {
         BufferedImage img = frames[currentFrame];
         if (img == null) return;
 
-        long t = System.currentTimeMillis();
+        long t = GameClock.now();
         // Tremor lateral leve no idle (aranha "balança")
         int sway = attacking ? 0 : (int) (Math.sin(t * 0.012) * 2);
         // Escala +20% no ataque
