@@ -7,8 +7,12 @@ public final class Constants {
     public static final int TILE_SIZE = 32;
     public static final int FPS = 60;
 
+    // Resolução lógica do jogo (16:9 — encaixa na maioria dos monitores em fullscreen)
+    public static final int SCREEN_W = 1280;
+    public static final int SCREEN_H = 720;
+
     public static final int INITIAL_MANA           = 100;
-    public static final int INITIAL_FOREST_RESOURCES = 150;
+    public static final int INITIAL_FOREST_RESOURCES = 200;
     public static final int INITIAL_BASE_HEALTH    = 100;
     public static final int MANA_REGEN_PER_SECOND  = 5;
 
@@ -33,6 +37,10 @@ public final class Constants {
     public static final int    BIRD_DAMAGE = 15;
     public static final double BIRD_RANGE  = 120.0;
 
+    public static final double SPIDER_HP     = 70.0;
+    public static final int    SPIDER_DAMAGE = 8;
+    public static final double SPIDER_RANGE  = 90.0;
+
     public static final double TREE_HP     = 100.0;
     public static final int    TREE_DAMAGE = 10;
     public static final double TREE_RANGE  = 100.0;
@@ -44,5 +52,6 @@ public final class Constants {
     // Custo em RF para construir
     public static final int COST_TREE    = 50;
     public static final int COST_BIRD    = 80;
+    public static final int COST_SPIDER  = 65;
     public static final int COST_BARRIER = 150;
 }

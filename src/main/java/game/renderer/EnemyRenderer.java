@@ -1,6 +1,8 @@
 package game.renderer;
 
 import game.enemies.Excavator;
+import game.enemies.Lumberjack;
+import game.enemies.Pollution;
 import game.entities.Enemy;
 
 import java.awt.*;
@@ -21,12 +23,24 @@ public class EnemyRenderer {
             int ex = (int) e.getX();
             int ey = (int) e.getY();
 
-            // ── 1. INTERCEPTA A ESCAVADEIRA (Renderiza o Sprite Animado) ──
+            // 1. Intercepta inimigos com sprite
             if (e instanceof Excavator) {
                 g.setStroke(new BasicStroke(1));
-                ((Excavator) e).render(g); // Chama o método render que criamos dentro da Excavator
-                drawHp(g, e, ex, ey);       // Desenha a barra de vida acima dela
-                continue;                  // Pula o resto do código para não desenhar a bola vermelha por baixo
+                ((Excavator) e).render(g);
+                drawHp(g, e, ex, ey);
+                continue;
+            }
+            if (e instanceof Pollution) {
+                g.setStroke(new BasicStroke(1));
+                ((Pollution) e).render(g);
+                drawHp(g, e, ex, ey);
+                continue;
+            }
+            if (e instanceof Lumberjack) {
+                g.setStroke(new BasicStroke(1));
+                ((Lumberjack) e).render(g);
+                drawHp(g, e, ex, ey);
+                continue;
             }
 
             // ── 2. RENDERIZAÇÃO PADRÃO (Para os outros inimigos, ex: Lenhador) ──

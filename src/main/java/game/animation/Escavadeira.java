@@ -17,8 +17,8 @@ public class Escavadeira {
     private boolean facingLeft = false;
 
     // Tamanho de desenho calibrado pela proporção real da escavadeira (sem achatar)
-    private final int DRAW_W = 36;
-    private final int DRAW_H = 33;
+    private final int DRAW_W = 46;
+    private final int DRAW_H = 42;
 
     public Escavadeira(String baseName, int frameCount) {
         this.totalFrames = frameCount;
@@ -97,19 +97,29 @@ public class Escavadeira {
         int destX = x - (DRAW_W / 2);
         int destY = y - (DRAW_H / 2);
 
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                            RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING,
+                            RenderingHints.VALUE_RENDER_QUALITY);
+
+        // Sombra
+        g2.setColor(new Color(0, 0, 0, 95));
+        g2.fillOval(x - DRAW_W / 3, y + DRAW_H / 2 - 4, (DRAW_W * 2) / 3, DRAW_H / 5);
+
         if (facingLeft) {
-            // Flip horizontal: inverte o destino X sem criar BufferedImage extra
-            g.drawImage(img,
-                destX + DRAW_W, destY,   // dest x1 = direita
-                destX,          destY + DRAW_H, // dest x2 = esquerda (negativo = espelha)
+            g2.drawImage(img,
+                destX + DRAW_W, destY,
+                destX,          destY + DRAW_H,
                 srcX, srcY, srcX + srcW, srcY + srcH,
                 null);
         } else {
-            g.drawImage(img,
+            g2.drawImage(img,
                 destX, destY, destX + DRAW_W, destY + DRAW_H,
                 srcX, srcY, srcX + srcW, srcY + srcH,
                 null);
         }
+        g2.dispose();
     }
 
     public int getDrawWidth()  { return DRAW_W; }

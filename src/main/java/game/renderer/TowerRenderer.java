@@ -2,6 +2,7 @@ package game.renderer;
 
 import game.defenses.BarrierDefense;
 import game.defenses.BirdDefense;
+import game.defenses.SpiderDefense;
 import game.defenses.TreeDefense;
 import game.entities.Tower;
 
@@ -34,12 +35,12 @@ public class TowerRenderer {
             if (!t.isAlive()) continue;
             int tx = (int) t.getX(), ty = (int) t.getY();
 
-            // ── SOLUÇÃO: Intercepta a Arara antes de desenhar qualquer círculo de fundo ──
-            if (t instanceof BirdDefense) {
+            // Intercepta torres com sprite animado (Arara, Aranha, Açaçu)
+            if (t instanceof BirdDefense || t instanceof SpiderDefense || t instanceof TreeDefense) {
                 g.setStroke(new BasicStroke(1));
-                t.render(g); // Desenha puramente a animação da Arara
-                drawHp(g, t, tx, ty); // Desenha a barra de vida dela
-                continue; // Pula todo o resto do código para não criar o fundo azul!
+                t.render(g);
+                drawHp(g, t, tx, ty);
+                continue;
             }
 
             Color c = color(t);
