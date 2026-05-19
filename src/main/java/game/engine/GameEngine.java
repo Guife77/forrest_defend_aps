@@ -182,7 +182,7 @@ public class GameEngine extends MouseAdapter {
             return;
         }
 
-        mapRenderer.render(g2, map, path);
+        mapRenderer.render(g2, map);
         mapRenderer.renderPath(g2, path);
         towerRenderer.render(g2, towers, showRanges);
         enemyRenderer.render(g2, enemies);

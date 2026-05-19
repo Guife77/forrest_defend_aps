@@ -4,11 +4,11 @@ public final class Constants {
 
     private Constants() {}
 
-    public static final int TILE_SIZE = 32;
+    public static final int TILE_SIZE = 40;
     public static final int FPS = 60;
 
     // Resolução lógica do jogo (16:9 — encaixa na maioria dos monitores em fullscreen)
-    public static final int SCREEN_W = 1280;
+    public static final int SCREEN_W = 960;
     public static final int SCREEN_H = 720;
 
     public static final int INITIAL_MANA           = 100;
