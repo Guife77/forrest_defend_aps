@@ -57,7 +57,7 @@ public class MapLoader {
 
     /**
      * Waypoints em {col, row} — ordem exata de percurso dos inimigos.
-     * Entrada col 0 row 2 → ... → BASE col 1 row 13
+     * Entrada col 0 row 2 → .. → BASE col 1 row 13
      */
     private static final int[][] WAYPOINTS = {
 
