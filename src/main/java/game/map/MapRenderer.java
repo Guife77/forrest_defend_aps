@@ -5,109 +5,109 @@ import game.world.Tile;
 import game.world.enums.TileType;
 
 import java.awt.*;
-import java.awt.geom.*;
+import java.awt.geom.Path2D;
 import java.util.List;
 import java.util.Random;
 
 /**
- * MapRenderer estilo Bloons TD6.
- * Grama rica, caminho de areia com bordas, árvores e arbustos decorativos.
+ * Renderizador moderno do mapa:
+ *   • Grama com variação procedural em zonas grandes (não mais checker tile-a-tile)
+ *   • Caminho como polyline contínua com cantos arredondados (sem bordas de tile visíveis)
+ *   • Decoração estratificada: flores → arbustos → árvores
+ *   • Base renderizada pela CasaPrincipal
  */
 public class MapRenderer {
 
-    // Paleta de cores
-    private static final Color GRASS_BASE    = new Color(46, 125, 50);
-    private static final Color GRASS_DARK    = new Color(27, 94,  32);
-    private static final Color GRASS_LIGHT   = new Color(76, 153, 56);
+    // ── Paleta ────────────────────────────────────────────────
+    private static final Color GRASS_BASE     = new Color(72, 156, 75);
+    private static final Color GRASS_DARK     = new Color(46, 120, 50);
+    private static final Color GRASS_LIGHT    = new Color(110, 188, 92);
+    private static final Color GRASS_DEEP     = new Color(28,  90,  35);
 
-    private static final Color PATH_BASE     = new Color(194, 158, 100);
-    private static final Color PATH_DARK     = new Color(150, 112,  60);
-    private static final Color PATH_EDGE     = new Color(120,  82,  35);
-    private static final Color PATH_HIGHLIGHT= new Color(220, 185, 130);
+    private static final Color PATH_OUTER     = new Color(95,  64,  35);
+    private static final Color PATH_INNER     = new Color(196, 162, 108);
+    private static final Color PATH_HIGHLIGHT = new Color(225, 195, 145);
+    private static final Color PATH_SHADOW    = new Color(0, 0, 0, 35);
 
-    private static final Color BASE_FILL     = new Color(21,  101, 192);
-    private static final Color BASE_BORDER   = new Color(13,   71, 161);
-    private static final Color BASE_SHINE    = new Color(66,  165, 245);
+    private static final Color ENTRY_FILL     = new Color(220,  55,  45);
+    private static final Color ENTRY_BORDER   = new Color(130,  20,  20);
 
-    private static final Color ENTRY_FILL    = new Color(198,  40,  40);
-    private static final Color ENTRY_BORDER  = new Color(183,  28,  28);
+    private static final Color TREE_DARK      = new Color(20,  72,  28);
+    private static final Color TREE_MID       = new Color(46, 125,  50);
+    private static final Color TREE_LIGHT     = new Color(96, 180,  90);
+    private static final Color TRUNK          = new Color(73,  48,  35);
 
-    private static final Color TREE_DARK     = new Color(27,  94,  32);
-    private static final Color TREE_MID      = new Color(46, 125,  50);
-    private static final Color TREE_LIGHT    = new Color(76, 175,  80);
-    private static final Color TRUNK         = new Color(93,  64,  55);
-    private static final Color BUSH          = new Color(33, 113,  40);
+    private static final Color BUSH           = new Color(33, 113,  40);
 
-    private static final Color FLOWER_YELLOW = new Color(249, 168,  37);
-    private static final Color FLOWER_PINK   = new Color(233,  30,  99);
+    private static final Color FLOWER_YELLOW  = new Color(249, 198,  47);
+    private static final Color FLOWER_PINK    = new Color(233,  90, 140);
+    private static final Color FLOWER_WHITE   = new Color(245, 245, 245);
+    private static final Color FLOWER_BLUE    = new Color(120, 150, 235);
 
-    private static final Color GRID_LINE     = new Color(0, 0, 0, 18);
-
-
+    // Cache de decorações
     private boolean decorationsBuilt = false;
-    private int[]   treeX, treeY, treeR;
-    private int[]   bushX, bushY;
-    private int[]   flowerX, flowerY;
-    private boolean[] flowerYellow;
+    private int[] zoneTone;
+    private int[] treeX, treeY, treeR, treeKind;
+    private int[] bushX, bushY, bushSize;
+    private int[] flowerX, flowerY, flowerKind;
+    private int[] tuftX, tuftY;
+    // Pedras espalhadas pela borda do caminho (cobblestone)
+    private int[] stoneX, stoneY, stoneSize;
+    private int[] stoneTone;
 
+    private Wildlife wildlife;
+    private Waterfall waterfall;
     private final int tileSize;
 
     public MapRenderer(int tileSize) {
         this.tileSize = tileSize;
     }
 
-
-    //  RENDER PRINCIPAL
-
-    public void render(Graphics2D g, GameMap map) {
+    /**
+     * Renderiza o mapa completo.
+     * @param waypoints centros dos tiles ao longo do caminho — usado para desenhar a estrada contínua.
+     */
+    public void render(Graphics2D g, GameMap map, List<Point> waypoints) {
         int rows = map.getRows();
         int cols = map.getCols();
 
         setupHints(g);
-        if (!decorationsBuilt) buildDecorations(map, rows, cols);
+        if (!decorationsBuilt) buildDecorations(map, rows, cols, waypoints);
+        if (wildlife == null) wildlife = new Wildlife(map, tileSize);
+        if (waterfall == null) waterfall = createWaterfall(rows, cols);
 
-        // 1. Base da grama (todos os tiles)
-        drawGrassBase(g, rows, cols);
-
-        // 2. Caminho (bordas antes do miolo)
-        drawPathBorders(g, map, rows, cols);
-        drawPathFill(g, map, rows, cols);
-
-        // 3. Grade sutil
-        drawGrid(g, rows, cols);
-
-        // 4. Detalhes do caminho (centro tracejado)
-        // feito no renderPath()
-
-        // 5. Decorações da grama
-        drawDecorations(g, map);
-
-        // 6. Base e entrada com destaque
-        drawSpecialTiles(g, map, rows, cols);
+        drawGrass(g, rows, cols);
+        drawSmoothPath(g, waypoints);
+        drawStoneBorders(g);
+        drawDecorations(g, map, rows, cols);
+        waterfall.render(g);
+        wildlife.update();
+        drawSpecialTiles(g, map, rows, cols, waypoints);
+        wildlife.render(g);
     }
 
-    /** Linha tracejada no centro do caminho — indica rota dos inimigos */
+    /** Posiciona a cachoeira na zona aberta entre o caminho superior e o do meio. */
+    private Waterfall createWaterfall(int rows, int cols) {
+        int cx = 17 * tileSize;          // col 17 (centro do trecho aberto)
+        int cyTop = 8 * tileSize;        // logo abaixo do caminho de row 7
+        int w = (int)(tileSize * 4.2);
+        int h = tileSize * 4;
+        return new Waterfall(cx, cyTop, w, h);
+    }
+
+    /** Linha tracejada amarela no centro do caminho — indica direção do percurso. */
     public void renderPath(Graphics2D g, List<Point> path) {
         if (path == null || path.size() < 2) return;
-
-        // Sombra da linha
-        g.setColor(new Color(0, 0, 0, 30));
-        g.setStroke(new BasicStroke(5, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
-                1, new float[]{10, 10}, 0));
-        drawPolyline(g, path);
-
-        // Linha central amarela suave
-        g.setColor(new Color(255, 213, 79, 80));
+        g.setColor(new Color(255, 213, 79, 120));
         g.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
-                1, new float[]{10, 10}, 0));
+                1, new float[]{10, 9}, 0));
         drawPolyline(g, path);
-
         g.setStroke(new BasicStroke(1));
     }
 
-
-    //  DETALHES INTERNOS
-
+    // ────────────────────────────────────────────────────────
+    //  GRAMA
+    // ────────────────────────────────────────────────────────
 
     private void setupHints(Graphics2D g) {
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,   RenderingHints.VALUE_ANTIALIAS_ON);
@@ -115,176 +115,154 @@ public class MapRenderer {
         g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL,  RenderingHints.VALUE_STROKE_PURE);
     }
 
-    private void drawGrassBase(Graphics2D g, int rows, int cols) {
+    private void drawGrass(Graphics2D g, int rows, int cols) {
         int w = cols * tileSize;
         int h = rows * tileSize;
 
-        // Fundo uniforme
+        // Fundo verde sólido
         g.setColor(GRASS_BASE);
         g.fillRect(0, 0, w, h);
 
-        // Variação de brilho em xadrez 2x2
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                boolean checker = ((r + c) % 2 == 0);
-                if (checker) {
-                    g.setColor(new Color(0, 0, 0, 10));
-                    g.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
+        // Variação em zonas grandes (4x4 tiles), não em cada tile — visual menos repetitivo
+        int zoneSize = tileSize * 4;
+        int zoneCols = (cols + 3) / 4;
+        int zoneRows = (rows + 3) / 4;
+        for (int zr = 0; zr < zoneRows; zr++) {
+            for (int zc = 0; zc < zoneCols; zc++) {
+                int idx = zr * zoneCols + zc;
+                if (idx >= zoneTone.length) break;
+                int tone = zoneTone[idx];
+                if (tone < 0) continue;
+                Color tint;
+                switch (tone) {
+                    case 0: tint = new Color(GRASS_LIGHT.getRed(), GRASS_LIGHT.getGreen(), GRASS_LIGHT.getBlue(), 55); break;
+                    case 1: tint = new Color(GRASS_DARK.getRed(),  GRASS_DARK.getGreen(),  GRASS_DARK.getBlue(),  45); break;
+                    default: tint = new Color(GRASS_DEEP.getRed(), GRASS_DEEP.getGreen(), GRASS_DEEP.getBlue(), 30); break;
                 }
+                g.setPaint(new RadialGradientPaint(
+                        zc * zoneSize + zoneSize / 2f,
+                        zr * zoneSize + zoneSize / 2f,
+                        zoneSize * 0.7f,
+                        new float[]{0f, 1f},
+                        new Color[]{tint, new Color(tint.getRed(), tint.getGreen(), tint.getBlue(), 0)}
+                ));
+                g.fillRect(zc * zoneSize, zr * zoneSize, zoneSize, zoneSize);
             }
+        }
+
+        // Tufos de grama esparsos
+        g.setColor(new Color(GRASS_DEEP.getRed(), GRASS_DEEP.getGreen(), GRASS_DEEP.getBlue(), 160));
+        for (int i = 0; i < tuftX.length; i++) {
+            if (tuftX[i] < 0) continue;
+            int x = tuftX[i], y = tuftY[i];
+            g.drawLine(x - 1, y, x - 1, y - 3);
+            g.drawLine(x, y, x, y - 4);
+            g.drawLine(x + 1, y, x + 1, y - 3);
         }
     }
 
-    private void drawPathBorders(Graphics2D g, GameMap map, int rows, int cols) {
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                Tile t = map.getTile(r, c);
-                if (t == null) continue;
-                if (t.getType() == TileType.PATH || t.getType() == TileType.BASE) {
-                    int px = c * tileSize, py = r * tileSize;
-                    g.setColor(PATH_EDGE);
-                    g.fillRect(px, py, tileSize, tileSize);
-                }
-            }
+    // ────────────────────────────────────────────────────────
+    //  CAMINHO (POLYLINE SUAVE)
+    // ────────────────────────────────────────────────────────
+
+    private void drawSmoothPath(Graphics2D g, List<Point> wps) {
+        if (wps == null || wps.size() < 2) return;
+
+        Path2D.Double pathShape = new Path2D.Double();
+        pathShape.moveTo(wps.get(0).x, wps.get(0).y);
+        for (int i = 1; i < wps.size(); i++) {
+            pathShape.lineTo(wps.get(i).x, wps.get(i).y);
         }
-    }
 
-    private void drawPathFill(Graphics2D g, GameMap map, int rows, int cols) {
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                Tile t = map.getTile(r, c);
-                if (t == null || t.getType() == TileType.GRASS) continue;
-                if (t.getType() == TileType.BASE) continue; // desenhado depois
+        // Sombra projetada do caminho
+        Graphics2D gs = (Graphics2D) g.create();
+        gs.translate(2, 4);
+        gs.setColor(PATH_SHADOW);
+        gs.setStroke(new BasicStroke(tileSize + 4, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        gs.draw(pathShape);
+        gs.dispose();
 
-                int px = c * tileSize + 3;
-                int py = r * tileSize + 3;
-                int pw = tileSize - 6;
-                int ph = tileSize - 6;
+        // Borda externa (escura)
+        g.setColor(PATH_OUTER);
+        g.setStroke(new BasicStroke(tileSize + 2, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g.draw(pathShape);
 
-                // Miolo de areia
-                g.setColor(PATH_BASE);
-                g.fillRect(px, py, pw, ph);
+        // Miolo (areia)
+        g.setColor(PATH_INNER);
+        g.setStroke(new BasicStroke(tileSize - 6, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g.draw(pathShape);
 
-                // Listras de textura
-                g.setColor(new Color(0, 0, 0, 12));
-                for (int i = 0; i < pw; i += 6) {
-                    g.drawLine(px + i, py, px + i, py + ph);
-                }
+        // Realce superior do caminho (iluminação)
+        Graphics2D gh = (Graphics2D) g.create();
+        gh.translate(0, -1);
+        gh.setColor(new Color(PATH_HIGHLIGHT.getRed(), PATH_HIGHLIGHT.getGreen(), PATH_HIGHLIGHT.getBlue(), 100));
+        gh.setStroke(new BasicStroke(tileSize - 10, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        gh.draw(pathShape);
+        gh.dispose();
 
-                // Realce superior esquer
-                g.setColor(new Color(255, 255, 255, 20));
-                g.fillRect(px, py, pw, 3);
-                g.fillRect(px, py, 3, ph);
-            }
-        }
-    }
-
-    private void drawGrid(Graphics2D g, int rows, int cols) {
-        g.setColor(GRID_LINE);
-        g.setStroke(new BasicStroke(0.5f));
-        for (int r = 0; r <= rows; r++)
-            g.drawLine(0, r * tileSize, cols * tileSize, r * tileSize);
-        for (int c = 0; c <= cols; c++)
-            g.drawLine(c * tileSize, 0, c * tileSize, rows * tileSize);
         g.setStroke(new BasicStroke(1));
     }
 
-    private void drawSpecialTiles(Graphics2D g, GameMap map, int rows, int cols) {
+    private void drawSpecialTiles(Graphics2D g, GameMap map, int rows, int cols, List<Point> wps) {
+        // Fortaleza de madeira no tile BASE
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 Tile t = map.getTile(r, c);
-                if (t == null) continue;
-
-                int px = c * tileSize;
-                int py = r * tileSize;
-
-                if (t.getType() == TileType.BASE) {
-                    drawBaseTile(g, px, py);
-                }
-
-                // Entrada: tile PATH na coluna 0
-                if (t.getType() == TileType.PATH && c == 0) {
-                    drawEntryMarker(g, px, py);
+                if (t != null && t.getType() == TileType.BASE) {
+                    int cx = c * tileSize + tileSize / 2;
+                    int cy = r * tileSize + tileSize / 2;
+                    WoodenFortress.render(g, cx, cy, tileSize * 4);
                 }
             }
         }
+
+        // Marcador de entrada — no primeiro waypoint
+        if (wps != null && !wps.isEmpty()) {
+            Point entry = wps.get(0);
+            drawEntryMarker(g, entry.x, entry.y);
+        }
     }
 
-    private void drawBaseTile(Graphics2D g, int px, int py) {
-        int pad = 3;
+    private void drawEntryMarker(Graphics2D g, int cx, int cy) {
+        long t = System.currentTimeMillis();
+        float pulse = 0.7f + 0.3f * (float) Math.sin(t * 0.005);
+        int r = (int) (10 * pulse) + 2;
 
-        // Fundo azul do caminho sob a base
-        g.setColor(PATH_EDGE);
-        g.fillRect(px, py, tileSize, tileSize);
-        g.setColor(PATH_BASE);
-        g.fillRect(px + pad, py + pad, tileSize - pad * 2, tileSize - pad * 2);
-
-        // Ícone da base (castelo simplificado)
-        int bx = px + 5, by = py + 5, bw = tileSize - 10, bh = tileSize - 10;
-
-        // Corpo
-        g.setColor(BASE_FILL);
-        g.fillRoundRect(bx, by + bh / 3, bw, bh * 2 / 3, 4, 4);
-
-        // Ameias (3 blocos no topo)
-        g.setColor(BASE_FILL);
-        int aw = bw / 5;
-        for (int i = 0; i < 3; i++) {
-            int ax = bx + i * (aw + 2);
-            g.fillRect(ax, by, aw, bh / 3);
-        }
-
-        // Borda
-        g.setColor(BASE_BORDER);
-        g.setStroke(new BasicStroke(1.5f));
-        g.drawRoundRect(bx, by + bh / 3, bw, bh * 2 / 3, 4, 4);
-        for (int i = 0; i < 3; i++) {
-            int ax = bx + i * (aw + 2);
-            g.drawRect(ax, by, aw, bh / 3);
-        }
-
-        // Brilho superior
-        g.setColor(new Color(BASE_SHINE.getRed(), BASE_SHINE.getGreen(), BASE_SHINE.getBlue(), 80));
-        g.fillRect(bx + 1, by + bh / 3 + 1, bw - 2, 3);
-        g.setStroke(new BasicStroke(1));
-
-        // Label
-        g.setFont(new Font("Arial", Font.BOLD, 8));
-        g.setColor(Color.WHITE);
-        FontMetrics fm = g.getFontMetrics();
-        String label = "BASE";
-        g.drawString(label, px + (tileSize - fm.stringWidth(label)) / 2, py + tileSize - 4);
-    }
-
-    private void drawEntryMarker(Graphics2D g, int px, int py) {
-        // Pequena seta vermelha na borda esquerda
-        int cx = px + tileSize / 2;
-        int cy = py + tileSize / 2;
-        int r  = 7;
+        // Halo pulsante
+        g.setColor(new Color(255, 80, 60, 70));
+        g.fillOval(cx - r - 5, cy - r - 5, (r + 5) * 2, (r + 5) * 2);
 
         g.setColor(ENTRY_FILL);
         g.fillOval(cx - r, cy - r, r * 2, r * 2);
         g.setColor(ENTRY_BORDER);
-        g.setStroke(new BasicStroke(1.5f));
+        g.setStroke(new BasicStroke(2f));
         g.drawOval(cx - r, cy - r, r * 2, r * 2);
 
-        // Mini seta →
+        // Seta →
         g.setColor(Color.WHITE);
-        g.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-        g.drawLine(cx - 3, cy, cx + 3, cy);
-        g.drawLine(cx + 1, cy - 2, cx + 3, cy);
-        g.drawLine(cx + 1, cy + 2, cx + 3, cy);
+        g.setStroke(new BasicStroke(2.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g.drawLine(cx - 4, cy, cx + 4, cy);
+        g.drawLine(cx + 1, cy - 3, cx + 4, cy);
+        g.drawLine(cx + 1, cy + 3, cx + 4, cy);
         g.setStroke(new BasicStroke(1));
     }
 
-    // ─────────────────────────────────────────────────────────────
-    //  DECORAÇÕES (árvores, arbustos, flores)
-    // ─────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────
+    //  DECORAÇÕES
+    // ────────────────────────────────────────────────────────
 
-    private void buildDecorations(GameMap map, int rows, int cols) {
-        Random rng = new Random(42); // seed fixo = posições consistentes
+    private void buildDecorations(GameMap map, int rows, int cols, List<Point> waypoints) {
+        Random rng = new Random(11);
+        buildStoneBorders(waypoints, rng);
 
-        // Coleta tiles de grama disponíveis (longe do caminho)
+        // Tons das zonas (4x4 tiles)
+        int zoneCount = ((cols + 3) / 4) * ((rows + 3) / 4);
+        zoneTone = new int[zoneCount];
+        for (int i = 0; i < zoneCount; i++) {
+            zoneTone[i] = rng.nextInt(5) < 3 ? rng.nextInt(3) : -1;
+        }
+
+        // Tiles de grama longe do caminho
         java.util.List<int[]> grassCells = new java.util.ArrayList<>();
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
@@ -295,112 +273,221 @@ public class MapRenderer {
             }
         }
 
-        // Árvores grandes
-        int nTrees = Math.min(14, grassCells.size() / 4);
-        treeX = new int[nTrees]; treeY = new int[nTrees]; treeR = new int[nTrees];
-        java.util.Set<Integer> usedTree = new java.util.HashSet<>();
+        // Tufos: mais densos perto das bordas, esparsos no centro
+        int nTufts = (rows * cols) / 9;
+        tuftX = new int[nTufts]; tuftY = new int[nTufts];
+        int ki = 0;
+        int safety = 0;
+        while (ki < nTufts && safety++ < 2000 && !grassCells.isEmpty()) {
+            int[] cell = grassCells.get(rng.nextInt(grassCells.size()));
+            tuftX[ki] = cell[0] * tileSize + rng.nextInt(tileSize);
+            tuftY[ki] = cell[1] * tileSize + rng.nextInt(tileSize);
+            ki++;
+        }
+        for (; ki < nTufts; ki++) { tuftX[ki] = -100; tuftY[ki] = -100; }
+
+        // Árvores — quantidade menor, mais espaçadas
+        int nTrees = Math.min(28, grassCells.size() / 5);
+        treeX = new int[nTrees]; treeY = new int[nTrees]; treeR = new int[nTrees]; treeKind = new int[nTrees];
+        java.util.Set<Long> used = new java.util.HashSet<>();
         int ti = 0;
-        while (ti < nTrees && grassCells.size() > 0) {
-            int idx = rng.nextInt(grassCells.size());
-            if (usedTree.contains(idx)) { continue; }
-            usedTree.add(idx);
-            int[] cell = grassCells.get(idx);
+        int s2 = 0;
+        while (ti < nTrees && s2++ < 2000) {
+            int[] cell = grassCells.get(rng.nextInt(grassCells.size()));
+            long key = (long) cell[0] * 1000 + cell[1];
+            // Espaçamento mínimo: rejeita se já existe árvore num raio próximo
+            boolean tooClose = false;
+            for (long k : used) {
+                int kc = (int) (k / 1000), kr = (int) (k % 1000);
+                if (Math.abs(kc - cell[0]) < 2 && Math.abs(kr - cell[1]) < 2) { tooClose = true; break; }
+            }
+            if (tooClose) continue;
+            used.add(key);
             treeX[ti] = cell[0] * tileSize + tileSize / 2 + rng.nextInt(10) - 5;
             treeY[ti] = cell[1] * tileSize + tileSize / 2 + rng.nextInt(10) - 5;
-            treeR[ti] = 14 + rng.nextInt(6);
+            treeR[ti] = 14 + rng.nextInt(8);
+            treeKind[ti] = rng.nextInt(2);
             ti++;
         }
-        // preenche restantes se ficou curto
         for (; ti < nTrees; ti++) { treeX[ti] = -100; treeY[ti] = -100; treeR[ti] = 14; }
 
-        // Arbustos
-        int nBush = Math.min(20, grassCells.size() / 3);
-        bushX = new int[nBush]; bushY = new int[nBush];
+        // Arbustos — quantidade moderada
+        int nBush = Math.min(35, grassCells.size() / 3);
+        bushX = new int[nBush]; bushY = new int[nBush]; bushSize = new int[nBush];
         for (int i = 0; i < nBush && i < grassCells.size(); i++) {
-            int idx = rng.nextInt(grassCells.size());
-            int[] cell = grassCells.get(idx);
+            int[] cell = grassCells.get(rng.nextInt(grassCells.size()));
             bushX[i] = cell[0] * tileSize + rng.nextInt(tileSize);
             bushY[i] = cell[1] * tileSize + rng.nextInt(tileSize);
+            bushSize[i] = 7 + rng.nextInt(5);
         }
 
         // Flores
-        int nFlowers = Math.min(25, grassCells.size() / 2);
-        flowerX = new int[nFlowers]; flowerY = new int[nFlowers]; flowerYellow = new boolean[nFlowers];
+        int nFlowers = Math.min(60, grassCells.size());
+        flowerX = new int[nFlowers]; flowerY = new int[nFlowers]; flowerKind = new int[nFlowers];
         for (int i = 0; i < nFlowers && i < grassCells.size(); i++) {
-            int idx = rng.nextInt(grassCells.size());
-            int[] cell = grassCells.get(idx);
+            int[] cell = grassCells.get(rng.nextInt(grassCells.size()));
             flowerX[i] = cell[0] * tileSize + rng.nextInt(tileSize);
             flowerY[i] = cell[1] * tileSize + rng.nextInt(tileSize);
-            flowerYellow[i] = rng.nextBoolean();
+            flowerKind[i] = rng.nextInt(4);
         }
 
         decorationsBuilt = true;
     }
 
     private boolean adjacentToPath(GameMap map, int r, int c, int rows, int cols) {
-        int[] dr = {-1, 1, 0, 0};
-        int[] dc = {0, 0, -1, 1};
-        for (int d = 0; d < 4; d++) {
-            int nr = r + dr[d], nc = c + dc[d];
-            if (nr < 0 || nc < 0 || nr >= rows || nc >= cols) continue;
-            Tile t = map.getTile(nr, nc);
-            if (t != null && t.getType() != TileType.GRASS) return true;
+        for (int dr = -1; dr <= 1; dr++) {
+            for (int dc = -1; dc <= 1; dc++) {
+                int nr = r + dr, nc = c + dc;
+                if (nr < 0 || nc < 0 || nr >= rows || nc >= cols) continue;
+                Tile t = map.getTile(nr, nc);
+                if (t != null && t.getType() != TileType.GRASS) return true;
+            }
         }
         return false;
     }
 
-    private void drawDecorations(Graphics2D g, GameMap map) {
-        // Flores (fundo, abaixo das árvores)
+    private void drawDecorations(Graphics2D g, GameMap map, int rows, int cols) {
+        // Flores
         for (int i = 0; i < flowerX.length; i++) {
-            g.setColor(flowerYellow[i] ? FLOWER_YELLOW : FLOWER_PINK);
-            g.fillOval(flowerX[i] - 2, flowerY[i] - 2, 5, 5);
-            g.setColor(Color.WHITE);
-            g.fillOval(flowerX[i] - 1, flowerY[i] - 1, 3, 3);
+            if (flowerX[i] < 0) continue;
+            Color c;
+            switch (flowerKind[i]) {
+                case 0:  c = FLOWER_YELLOW; break;
+                case 1:  c = FLOWER_PINK;   break;
+                case 2:  c = FLOWER_WHITE;  break;
+                default: c = FLOWER_BLUE;   break;
+            }
+            int fx = flowerX[i], fy = flowerY[i];
+            g.setColor(c);
+            g.fillOval(fx - 3, fy - 1, 3, 3);
+            g.fillOval(fx + 1, fy - 1, 3, 3);
+            g.fillOval(fx - 1, fy - 3, 3, 3);
+            g.fillOval(fx - 1, fy + 1, 3, 3);
+            g.setColor(FLOWER_YELLOW);
+            g.fillOval(fx - 1, fy - 1, 2, 2);
         }
 
         // Arbustos
         for (int i = 0; i < bushX.length; i++) {
-            g.setColor(new Color(BUSH.getRed(), BUSH.getGreen(), BUSH.getBlue(), 180));
-            g.fillOval(bushX[i] - 8, bushY[i] - 5, 16, 10);
-            g.setColor(new Color(GRASS_DARK.getRed(), GRASS_DARK.getGreen(), GRASS_DARK.getBlue(), 120));
-            g.fillOval(bushX[i] - 5, bushY[i] - 4, 12, 8);
+            int s = bushSize[i];
+            g.setColor(new Color(0, 0, 0, 45));
+            g.fillOval(bushX[i] - s + 1, bushY[i] - s/2 + 2, s * 2, s);
+            g.setColor(new Color(BUSH.getRed(), BUSH.getGreen(), BUSH.getBlue(), 220));
+            g.fillOval(bushX[i] - s, bushY[i] - s/2, s * 2, s);
+            g.setColor(new Color(GRASS_LIGHT.getRed(), GRASS_LIGHT.getGreen(), GRASS_LIGHT.getBlue(), 160));
+            g.fillOval(bushX[i] - s + 2, bushY[i] - s/2, s + 2, s - 2);
         }
 
-        // Árvores grandes (com sombra + duas camadas de copa)
+        // Árvores
         for (int i = 0; i < treeX.length; i++) {
             int tx = treeX[i], ty = treeY[i], tr = treeR[i];
             if (tx < 0) continue;
-
-            // Sombra
-            g.setColor(new Color(0, 0, 0, 40));
-            g.fillOval(tx - tr + 4, ty - tr / 2 + 4, tr * 2, tr);
-
-            // Tronco
-            g.setColor(TRUNK);
-            g.fillRoundRect(tx - 3, ty + tr / 2 - 2, 6, 8, 2, 2);
-
-            // Copa externa (escura)
-            g.setColor(TREE_DARK);
-            g.fillOval(tx - tr, ty - tr, tr * 2, tr * 2);
-
-            // Copa interna (clara, deslocada)
-            g.setColor(TREE_MID);
-            g.fillOval(tx - tr + 3, ty - tr + 2, (int)(tr * 1.6), (int)(tr * 1.6));
-
-            // Brilho do topo
-            g.setColor(TREE_LIGHT);
-            g.fillOval(tx - tr / 2, ty - tr + 2, tr, tr / 2 + 2);
+            if (treeKind[i] == 0) drawRoundTree(g, tx, ty, tr);
+            else                  drawPineTree(g, tx, ty, tr);
         }
     }
 
-    // ─────────────────────────────────────────────────────────────
-    //  UTILIDADE
-    // ─────────────────────────────────────────────────────────────
+    private void drawRoundTree(Graphics2D g, int tx, int ty, int tr) {
+        g.setColor(new Color(0, 0, 0, 65));
+        g.fillOval(tx - tr + 5, ty - tr / 2 + 6, tr * 2, tr);
+
+        g.setColor(TRUNK);
+        g.fillRoundRect(tx - 3, ty + tr / 2 - 2, 7, 10, 3, 3);
+
+        g.setColor(TREE_DARK);
+        g.fillOval(tx - tr, ty - tr, tr * 2, tr * 2);
+        g.setColor(TREE_MID);
+        g.fillOval(tx - tr + 3, ty - tr + 2, (int)(tr * 1.55), (int)(tr * 1.55));
+        g.setColor(TREE_LIGHT);
+        g.fillOval(tx - tr / 2, ty - tr + 2, tr, tr / 2 + 2);
+    }
+
+    private void drawPineTree(Graphics2D g, int tx, int ty, int tr) {
+        g.setColor(new Color(0, 0, 0, 65));
+        g.fillOval(tx - tr + 4, ty + tr / 2 - 2, tr * 2, tr);
+        g.setColor(TRUNK);
+        g.fillRect(tx - 2, ty + tr / 2, 4, 9);
+        for (int i = 0; i < 3; i++) {
+            int h = tr - i * 4;
+            int w = tr + 5 - i * 2;
+            int yOff = ty + tr / 2 - i * (tr / 2);
+            int[] xs = { tx - w, tx, tx + w };
+            int[] ys = { yOff, yOff - h, yOff };
+            g.setColor(i == 2 ? TREE_LIGHT : (i == 1 ? TREE_MID : TREE_DARK));
+            g.fillPolygon(xs, ys, 3);
+        }
+    }
 
     private void drawPolyline(Graphics2D g, List<Point> pts) {
         for (int i = 0; i < pts.size() - 1; i++) {
             Point a = pts.get(i), b = pts.get(i + 1);
             g.drawLine(a.x, a.y, b.x, b.y);
+        }
+    }
+
+    // ────────────────────────────────────────────────────────
+    //  PEDRAS DA BORDA DO CAMINHO (cobblestone)
+    // ────────────────────────────────────────────────────────
+
+    /** Gera posições de pedras dos dois lados do caminho. */
+    private void buildStoneBorders(List<Point> waypoints, Random rng) {
+        if (waypoints == null || waypoints.size() < 2) {
+            stoneX = new int[0]; stoneY = new int[0]; stoneSize = new int[0]; stoneTone = new int[0];
+            return;
+        }
+        List<int[]> stones = new java.util.ArrayList<>();
+        float halfWidth = tileSize / 2f + 1;
+        float stride = 9f; // espaçamento entre pedras ao longo do caminho
+
+        for (int i = 0; i < waypoints.size() - 1; i++) {
+            Point a = waypoints.get(i);
+            Point b = waypoints.get(i + 1);
+            float dx = b.x - a.x, dy = b.y - a.y;
+            float len = (float) Math.hypot(dx, dy);
+            if (len < 0.001f) continue;
+            float nx = -dy / len, ny = dx / len; // perpendicular unitário
+            int n = Math.max(1, (int)(len / stride));
+            for (int s = 0; s < n; s++) {
+                float t = s / (float) n;
+                float px = a.x + dx * t, py = a.y + dy * t;
+                // Lado A
+                float jitterA = (rng.nextFloat() - 0.5f) * 3f;
+                int sxA = (int)(px + nx * (halfWidth + jitterA));
+                int syA = (int)(py + ny * (halfWidth + jitterA));
+                stones.add(new int[]{ sxA, syA, 4 + rng.nextInt(3), rng.nextInt(3) });
+                // Lado B
+                float jitterB = (rng.nextFloat() - 0.5f) * 3f;
+                int sxB = (int)(px - nx * (halfWidth + jitterB));
+                int syB = (int)(py - ny * (halfWidth + jitterB));
+                stones.add(new int[]{ sxB, syB, 4 + rng.nextInt(3), rng.nextInt(3) });
+            }
+        }
+        int n = stones.size();
+        stoneX = new int[n]; stoneY = new int[n]; stoneSize = new int[n]; stoneTone = new int[n];
+        for (int i = 0; i < n; i++) {
+            int[] s = stones.get(i);
+            stoneX[i] = s[0]; stoneY[i] = s[1]; stoneSize[i] = s[2]; stoneTone[i] = s[3];
+        }
+    }
+
+    /** Desenha as pedras com 3 variações de cor. */
+    private void drawStoneBorders(Graphics2D g) {
+        Color[] palette = {
+                new Color(170, 170, 165),
+                new Color(140, 140, 135),
+                new Color(115, 115, 110)
+        };
+        for (int i = 0; i < stoneX.length; i++) {
+            int sx = stoneX[i], sy = stoneY[i], sz = stoneSize[i];
+            // Sombra
+            g.setColor(new Color(0, 0, 0, 70));
+            g.fillOval(sx - sz + 1, sy - sz / 2 + 1, sz * 2, sz);
+            // Pedra
+            g.setColor(palette[stoneTone[i]]);
+            g.fillOval(sx - sz, sy - sz / 2, sz * 2, sz);
+            // Realce superior
+            g.setColor(new Color(255, 255, 255, 60));
+            g.fillOval(sx - sz + 1, sy - sz / 2, sz - 1, sz / 2);
         }
     }
 }

@@ -1,5 +1,7 @@
 package game.animation;
 
+import game.utils.GameClock;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -10,75 +12,126 @@ public class Arara {
 
     private BufferedImage[] frames;
     private int currentFrame = 0;
-    private int totalFrames;
     private long lastTime;
-    private int speed = 120; // ms por frame
+    private int speed = 150; // ms por quadro
 
-    public Arara(String fileName, int frameCount) {
-        this.totalFrames = frameCount;
-        load(fileName);
-        lastTime = System.currentTimeMillis();
+    private boolean attacking = false;
+    private int attackTickCount = 0;
+
+    private final int DRAW_SIZE = 44;
+
+    public Arara(String baseName) {
+        frames = new BufferedImage[4];
+        loadFrames(baseName);
+        lastTime = GameClock.now();
     }
 
-    public Arara (String fileName) {
-        this(fileName, 4);
-    }
+    private void loadFrames(String baseName) {
+        for (int i = 0; i < 4; i++) {
+            String fileName = baseName + (i + 1) + ".png";
+            String[] candidates = {
+                    fileName,
+                    "src/main/resources/public/" + fileName,
+                    "public/" + fileName
+            };
 
-    private void load(String fileName) {
-        String[] candidates = {
-                fileName,
-                "forrest_defend/" + fileName,
-                "forrest_defend/public/" + fileName,
-                "public/" + fileName
-        };
-
-        BufferedImage sheet = null;
-        for (String path : candidates) {
-            try {
-                File f = new File(path);
-                if (f.exists()) { sheet = ImageIO.read(f); break; }
-            } catch (IOException ignored) {}
-        }
-
-        frames = new BufferedImage[totalFrames];
-
-        if (sheet == null) {
-            // Placeholder animado: aro azul pulsando
-            for (int i = 0; i < totalFrames; i++) {
-                frames[i] = new BufferedImage(28, 28, BufferedImage.TYPE_INT_ARGB);
-                Graphics2D g = frames[i].createGraphics();
-                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                int alpha = 120 + i * 35;
-                g.setColor(new Color(60, 130, 220, Math.min(alpha, 255)));
-                g.fillOval(1, 1, 26, 26);
-                g.setColor(Color.WHITE);
-                g.setFont(new Font("Arial", Font.BOLD, 12));
-                g.drawString("A", 9, 19);
-                g.dispose();
+            BufferedImage img = null;
+            for (String path : candidates) {
+                try {
+                    File f = new File(path);
+                    if (f.exists()) { 
+                        img = ImageIO.read(f); 
+                        break; 
+                    }
+                } catch (IOException ignored) {}
             }
-            return;
-        }
 
-        int w = sheet.getWidth() / totalFrames;
-        int h = sheet.getHeight();
-        for (int i = 0; i < totalFrames; i++) {
-            frames[i] = sheet.getSubimage(i * w, 0, w, h);
+            if (img != null) {
+                frames[i] = img;
+            } else {
+                frames[i] = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
+            }
+        }
+    }
+
+    public void playAttack() {
+        if (!attacking) {
+            attacking = true;
+            currentFrame = 2;
+            attackTickCount = 0;
+            lastTime = GameClock.now();
         }
     }
 
     public void update() {
-        long now = System.currentTimeMillis();
+        long now = GameClock.now();
         if (now - lastTime > speed) {
-            currentFrame = (currentFrame + 1) % totalFrames;
+            if (attacking) {
+                currentFrame++;
+                if (currentFrame > 3) currentFrame = 2;
+                
+                attackTickCount++;
+                if (attackTickCount >= 2) {
+                    attacking = false;
+                    currentFrame = 0;
+                }
+            } else {
+                currentFrame = (currentFrame + 1) % 2;
+            }
             lastTime = now;
         }
     }
 
     public void render(Graphics g, int x, int y) {
-        if (frames != null && frames[currentFrame] != null)
-            g.drawImage(frames[currentFrame], x, y, null);
+        BufferedImage currentImage = frames[currentFrame];
+        if (currentImage == null) return;
+
+        int imgW = currentImage.getWidth();
+        int imgH = currentImage.getHeight();
+
+        int srcX, srcY, srcW, srcH;
+
+        if (currentFrame == 0) {
+            srcX = (int) (imgW * 0.0625);
+            srcY = (int) (imgH * 0.3582);
+            srcW = (int) (imgW * 0.1836);
+            srcH = (int) (imgH * 0.2364);
+        } else if (currentFrame == 1) {
+            srcX = (int) (imgW * 0.3047);
+            srcY = (int) (imgH * 0.3625);
+            srcW = (int) (imgW * 0.1656);
+            srcH = (int) (imgH * 0.2851);
+        } else {
+            srcX = 0; srcY = 0; srcW = imgW; srcH = imgH;
+        }
+
+        // Bobbing leve no idle
+        long t = GameClock.now();
+        int bob = attacking ? 0 : (int) (Math.sin(t * 0.005) * 2);
+        // Escala leve no ataque (golpe)
+        float scale = attacking ? 1.15f : 1.0f;
+        int size = (int) (DRAW_SIZE * scale);
+
+        int destX = x - size / 2;
+        int destY = y - size / 2 + bob;
+
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                            RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING,
+                            RenderingHints.VALUE_RENDER_QUALITY);
+
+        // Sombra elíptica chão
+        g2.setColor(new Color(0, 0, 0, 70));
+        g2.fillOval(x - size / 3, y + size / 2 - 4, (size * 2) / 3, size / 5);
+
+        g2.drawImage(currentImage,
+                    destX, destY, destX + size, destY + size,
+                    srcX, srcY, srcX + srcW, srcY + srcH,
+                    null);
+        g2.dispose();
     }
 
-    public int getFrameWidth()  { return frames != null && frames[0] != null ? frames[0].getWidth()  : 28; }
-    public int getFrameHeight() { return frames != null && frames[0] != null ? frames[0].getHeight() : 28; }
+    public int getFrameWidth() { return DRAW_SIZE; }
+    public int getFrameHeight() { return DRAW_SIZE; }
 }

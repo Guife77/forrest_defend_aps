@@ -6,6 +6,20 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Main",
+            "request": "launch",
+            "mainClass": "game.main.Main",
+            "projectName": "forrest_defend_aps_f221dd7d"
+        },
+        {
+            "type": "java",
+            "name": "GameWindow",
+            "request": "launch",
+            "mainClass": "game.ui.GameWindow",
+            "projectName": "forrest_defend_aps_f221dd7d"
+        },
+        {
+            "type": "java",
             "name": "Game",
             "request": "launch",
             "mainClass": "game.application.Game",

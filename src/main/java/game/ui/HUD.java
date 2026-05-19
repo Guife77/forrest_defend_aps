@@ -5,117 +5,531 @@ import game.entities.Player;
 import game.utils.Constants;
 
 import java.awt.*;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 
 public class HUD {
 
-    public static final int PANEL_H = 58;
+    public static final int PANEL_H = 64;
 
-    private static final Color BG_PANEL  = new Color(15, 15, 15, 215);
-    private static final Color SEPARATOR = new Color(80, 80, 80);
+    // Estado das partículas da tela de vitória — inicia preguiçosamente no primeiro render
+    private VictoryFx victoryFx;
+
+    private static final Color BG_PANEL      = new Color(20, 25, 22, 245);
+    private static final Color BORDER_PANEL  = new Color(55, 75, 60);
+    private static final Color BG_CARD       = new Color(32, 36, 34);
+    private static final Color BORDER_CARD   = new Color(55, 60, 58);
+    private static final Color TEXT_LABEL    = new Color(140, 150, 145);
 
     public void render(Graphics2D g, Player player, WaveManager waves,
-                       int screenW, int screenH, char selectedTower, boolean showRanges) {
+                       int screenW, int screenH, char selectedTower, boolean showRanges,
+                       int speedMultiplier) {
 
+        // Ativar suavização para o texto ficar perfeito
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        // ── 1. STATUS DA ONDA FLUTUANTE (No topo do ecrã) ──
+        renderFloatingWaveInfo(g, waves, screenW);
+
+
+        // ── 2. PAINEL INFERIOR PRINCIPAL ──
         int panelY = screenH - PANEL_H;
 
-        // Fundo do painel
         g.setColor(BG_PANEL);
         g.fillRect(0, panelY, screenW, PANEL_H);
-        g.setColor(SEPARATOR);
+        g.setColor(BORDER_PANEL);
+        g.setStroke(new BasicStroke(2));
         g.drawLine(0, panelY, screenW, panelY);
+        g.setStroke(new BasicStroke(1));
 
-        // ── Linha 1: stats ──
-        int y1 = panelY + 20;
 
-        // HP da base
-        drawStat(g, "HP BASE", player.getBaseHealth() + "%",
-                hpColor(player.getBaseHealth()), 14, y1);
+        // ── BLOCO ESQUERDA: Status do Jogador (Barra de HP redimensionada e centralizada) ──
+        int startX = 15;
+        
+        int hp = player.getBaseHealth();
+        g.setFont(new Font("Arial", Font.BOLD, 10));
+        g.setColor(TEXT_LABEL);
+        g.drawString("INTEGRIDADE DA BASE", startX, panelY + 22);
+        
+        g.setColor(new Color(45, 45, 45));
+        g.fillRoundRect(startX, panelY + 28, 120, 14, 4, 4); // Ficou um pouco mais espessa e robusta
+        g.setColor(hpColor(hp));
+        int hpWidth = (int) (120 * (Math.max(0, hp) / 100.0));
+        g.fillRoundRect(startX, panelY + 28, hpWidth, 14, 4, 4);
+        g.setColor(Color.BLACK);
+        g.drawRoundRect(startX, panelY + 28, 120, 14, 4, 4);
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 10));
+        g.drawString(hp + "%", startX + 46, panelY + 39);
 
-        // RF
-        drawStat(g, "FLORESTA", "" + player.getForestResources() + " RF",
-                new Color(80, 220, 100), 160, y1);
+        // Caixa de Recursos (RF)
+        int rfX = 150;
+        g.setColor(new Color(30, 42, 34));
+        g.fillRoundRect(rfX, panelY + 10, 95, 46, 6, 6);
+        g.setColor(new Color(65, 95, 75));
+        g.drawRoundRect(rfX, panelY + 10, 95, 46, 6, 6);
+        
+        g.setFont(new Font("Arial", Font.BOLD, 9));
+        g.setColor(new Color(130, 180, 145));
+        g.drawString("RECURSOS", rfX + 10, panelY + 24);
+        g.setFont(new Font("Arial", Font.BOLD, 14));
+        g.setColor(new Color(46, 204, 113));
+        g.drawString(player.getForestResources() + " RF", rfX + 10, panelY + 42);
 
-        // Mana
-        drawStat(g, "MANA", "" + player.getMana(),
-                new Color(100, 160, 255), 330, y1);
 
-        // Wave
-        String waveText = waves.getCurrentWave() == 0
-                ? "Pressione SPACE"
-                : waves.isWaveActive()
-                ? "Wave " + waves.getCurrentWave() + " — ativa"
-                : "Wave " + waves.getCurrentWave() + " concluida — SPACE p/ próxima";
-        drawStat(g, "ONDA", waveText, new Color(255, 210, 60), 470, y1);
+        // ── BLOCO CENTRO: Seleção de Torres ──
+        int towerStartX = 260;
+        int cardW = 105;
+        int cardH = 46;
+        int cardY = panelY + 10;
 
-        // ── Linha 2: seleção de torre + dica ──
-        int y2 = panelY + 42;
+        drawTowerCard(g, "[T] ÁRVORE", Constants.COST_TREE + " RF", selectedTower == 'T', towerStartX, cardY, cardW, cardH, new Color(39, 174, 96));
+        drawTowerCard(g, "[A] ARARA", Constants.COST_BIRD + " RF", selectedTower == 'A', towerStartX + 112, cardY, cardW, cardH, new Color(41, 128, 185));
+        drawTowerCard(g, "[S] ARANHA", Constants.COST_SPIDER + " RF", selectedTower == 'S', towerStartX + 224, cardY, cardW, cardH, new Color(142, 68, 173));
+        drawTowerCard(g, "[B] BARREIRA", Constants.COST_BARRIER + " RF", selectedTower == 'B', towerStartX + 336, cardY, cardW, cardH, new Color(211, 84, 0));
+
+
+        // ── BLOCO DIREITA: Menu de Controles ──
+        int rightX = screenW - 220;
+        
+        g.setFont(new Font("Arial", Font.BOLD, 10));
+        g.setColor(TEXT_LABEL);
+        g.drawString("ATALHOS & CONTROLES", rightX, panelY + 15);
+
         g.setFont(new Font("Arial", Font.PLAIN, 11));
+        g.setColor(new Color(200, 205, 200)); 
+        g.drawString("• [CLIQUE] Construir Torres  |  [2] Velocidade", rightX, panelY + 30);
+        g.drawString("• [R] Alcances: " + (showRanges ? "ON" : "OFF") + "  |  [F11] Fullscreen", rightX, panelY + 43);
+        g.drawString("• [ESPAÇO] Próxima Onda  |  [ESC] Sair", rightX, panelY + 56);
 
-        // Torres disponíveis com custo
-        drawTowerBtn(g, "[T] Árvore", Constants.COST_TREE   + " RF", selectedTower == 'T', 14, y2);
-        drawTowerBtn(g, "[A] Arara",  Constants.COST_BIRD   + " RF", selectedTower == 'A', 160, y2);
-        drawTowerBtn(g, "[B] Barreira", Constants.COST_BARRIER + " RF", selectedTower == 'B', 290, y2);
-
-        // Atalhos
-        g.setColor(new Color(130, 130, 130));
-        String keys = "[R] ranges" + (showRanges ? " ON" : " OFF") + "  |  CLIQUE = construir  |  ESC = sair";
-        g.drawString(keys, 460, y2);
+        // Selo de velocidade flutuante no canto superior esquerdo
+        drawSpeedBadge(g, speedMultiplier);
     }
 
-    private void drawStat(Graphics2D g, String label, String value, Color valueColor, int x, int y) {
-        g.setFont(new Font("Arial", Font.PLAIN, 10));
-        g.setColor(new Color(150, 150, 150));
-        g.drawString(label, x, y - 8);
-        g.setFont(new Font("Arial", Font.BOLD, 13));
-        g.setColor(valueColor);
-        g.drawString(value, x, y);
-    }
+    private void renderFloatingWaveInfo(Graphics2D g, WaveManager waves, int screenW) {
+        String waveText;
+        Color waveColor;
 
-    private void drawTowerBtn(Graphics2D g, String name, String cost, boolean selected, int x, int y) {
-        if (selected) {
-            g.setColor(new Color(80, 200, 80, 60));
-            g.fillRoundRect(x - 4, y - 13, 130, 17, 4, 4);
-            g.setColor(new Color(80, 200, 80));
+        if (waves.getCurrentWave() == 0) {
+            waveText = "Pressione [ESPAÇO] para iniciar";
+            waveColor = new Color(241, 196, 15);
+        } else if (waves.isWaveActive()) {
+            waveText = "WAVE " + waves.getCurrentWave() + " EM CURSO !";
+            waveColor = new Color(231, 76, 60);
         } else {
-            g.setColor(new Color(160, 160, 160));
+            waveText = "WAVE " + waves.getCurrentWave() + " LIMPA! [ESPAÇO]";
+            waveColor = new Color(46, 204, 113);
         }
+
+        g.setFont(new Font("Arial", Font.BOLD, 14));
+        int txtW = g.getFontMetrics().stringWidth(waveText);
+
+        // ── NOVO POSICIONAMENTO: Canto Superior Direito ──
+        int boxW = txtW + 40;
+        int boxH = 32;
+        int boxX = screenW - boxW - 15; // 15 pixels de distância da borda direita da tela
+        int boxY = 15;                  // 15 pixels de distância do teto
+
+        // Desenha o fundo da caixa
+        g.setColor(new Color(15, 20, 15, 200));
+        g.fillRoundRect(boxX, boxY, boxW, boxH, 12, 12);
+        
+        // Desenha a borda da caixa
+        g.setColor(new Color(60, 80, 60));
+        g.drawRoundRect(boxX, boxY, boxW, boxH, 12, 12);
+
+        // Desenha o texto perfeitamente centralizado dentro da nova caixa
+        g.setColor(waveColor);
+        g.drawString(waveText, boxX + 20, boxY + 22);
+    }
+
+    private void drawTowerCard(Graphics2D g, String name, String cost, boolean selected, 
+                               int x, int y, int w, int h, Color accentColor) {
+        if (selected) {
+            g.setColor(new Color(accentColor.getRed(), accentColor.getGreen(), accentColor.getBlue(), 30));
+            g.fillRoundRect(x, y, w, h, 6, 6);
+            g.setColor(accentColor);
+            g.setStroke(new BasicStroke(2));
+            g.drawRoundRect(x, y, w, h, 6, 6);
+            g.setStroke(new BasicStroke(1));
+        } else {
+            g.setColor(BG_CARD);
+            g.fillRoundRect(x, y, w, h, 6, 6);
+            g.setColor(BORDER_CARD);
+            g.drawRoundRect(x, y, w, h, 6, 6);
+        }
+        g.setFont(new Font("Arial", Font.BOLD, 10));
+        g.setColor(selected ? Color.WHITE : new Color(175, 180, 175));
+        g.drawString(name, x + 8, y + 18);
         g.setFont(new Font("Arial", Font.BOLD, 11));
-        g.drawString(name, x, y);
-        g.setFont(new Font("Arial", Font.PLAIN, 10));
-        g.setColor(new Color(200, 180, 80));
-        g.drawString(cost, x + 80, y);
+        g.setColor(selected ? new Color(241, 196, 15) : new Color(160, 145, 90));
+        g.drawString(cost, x + 8, y + 34);
+    }
+
+    /**
+     * Retorna o atalho da torre se o clique caiu em um card do HUD,
+     * ou 0 se o clique foi fora dos cards. Coords em espaço lógico.
+     */
+    public char hitTestTowerCard(int x, int y, int screenW, int screenH) {
+        int panelY = screenH - PANEL_H;
+        int cardY = panelY + 10;
+        int cardH = 46;
+        if (y < cardY || y > cardY + cardH) return 0;
+
+        int towerStartX = 260;
+        int cardW = 105;
+        int gap = 112;
+        char[] keys = {'T', 'A', 'S', 'B'};
+        for (int i = 0; i < keys.length; i++) {
+            int cx = towerStartX + i * gap;
+            if (x >= cx && x <= cx + cardW) return keys[i];
+        }
+        return 0;
+    }
+
+    private void drawSpeedBadge(Graphics2D g, int multiplier) {
+        int w = 56, h = 28;
+        int x = 15, y = 15;
+        Color accent = multiplier == 1
+                ? new Color(150, 150, 150)
+                : (multiplier == 2 ? new Color(241, 196, 15) : new Color(231, 76, 60));
+
+        g.setColor(new Color(15, 20, 15, 200));
+        g.fillRoundRect(x, y, w, h, 10, 10);
+        g.setColor(accent);
+        g.setStroke(new BasicStroke(2f));
+        g.drawRoundRect(x, y, w, h, 10, 10);
+        g.setStroke(new BasicStroke(1));
+
+        g.setFont(new Font("Arial", Font.BOLD, 16));
+        g.setColor(accent);
+        String label = multiplier + "x";
+        FontMetrics fm = g.getFontMetrics();
+        g.drawString(label, x + (w - fm.stringWidth(label)) / 2, y + 20);
     }
 
     private Color hpColor(int hp) {
-        if (hp > 60) return new Color(80, 220, 100);
-        if (hp > 30) return new Color(255, 200, 50);
-        return new Color(255, 80, 80);
+        if (hp > 60) return new Color(39, 174, 96);   
+        if (hp > 30) return new Color(241, 196, 15);  
+        return new Color(192, 41, 43);     
     }
 
     public void renderGameOver(Graphics2D g, int w, int h, int wave) {
-        g.setColor(new Color(0, 0, 0, 170));
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        // 1. Fundo Gradiente Radial (Efeito Vignette de Derrota)
+        // Centro: Cinza escuro | Bordas: Preto absoluto (trazendo o clima de luto/fim)
+        Point2D center = new Point2D.Float(w / 2f, h / 2f);
+        float radius = Math.max(w, h);
+        float[] dist = {0.0f, 0.8f};
+        Color[] colors = {new Color(30, 30, 30, 200), new Color(0, 0, 0, 245)};
+        RadialGradientPaint p = new RadialGradientPaint(center, radius, dist, colors);
+        g.setPaint(p);
         g.fillRect(0, 0, w, h);
 
-        g.setFont(new Font("Arial", Font.BOLD, 52));
-        g.setColor(new Color(255, 70, 70));
-        drawCentered(g, "GAME OVER", w, h / 2 - 20);
+        // 2. Painel Central (Card de Derrota com borda vermelha fogo/sangue)
+        int pW = 550; // Largura do painel
+        int pH = 180; // Altura do painel
+        int pX = (w - pW) / 2;
+        int pY = (h - pH) / 2;
+        
+        // Fundo do card (quase preto opaco)
+        g.setColor(new Color(15, 10, 10, 230)); 
+        g.fillRoundRect(pX, pY, pW, pH, 15, 15);
+        // Borda brilhante vermelha
+        g.setColor(new Color(231, 76, 60)); // Vermelho Flat combativo
+        g.setStroke(new BasicStroke(3));
+        g.drawRoundRect(pX, pY, pW, pH, 15, 15);
+        g.setStroke(new BasicStroke(1)); // Reseta espessura
 
-        g.setFont(new Font("Arial", Font.PLAIN, 20));
-        g.setColor(Color.WHITE);
-        drawCentered(g, "Chegou até a wave " + wave + "  |  [R] para reiniciar", w, h / 2 + 30);
+
+        // 3. Tipografia e Conteúdo (Alinhado)
+        // Linha 1: Título Principal
+        g.setFont(new Font("Arial", Font.BOLD, 52));
+        g.setColor(new Color(231, 76, 60)); // Mesmo vermelho da borda
+        drawCentered(g, "✕ A BASE CAIU ✕", w, pY + 65);
+
+        // Linha 2: Descrição da tragédia e info da Wave
+        g.setFont(new Font("Arial", Font.PLAIN, 18));
+        g.setColor(new Color(220, 220, 220)); // Branco suave
+        String desc = "A floresta foi derrubada na WAVE " + wave;
+        drawCentered(g, desc, w, pY + 110);
+
+        // Linha auxiliar de história
+        g.setFont(new Font("Arial", Font.ITALIC, 14));
+        g.setColor(new Color(180, 150, 150)); // Cinza avermelhado
+        drawCentered(g, "Os invasores venceram esta batalha...", w, pY + 130);
+
+        // Linha 3: Controles Separados e discretos
+        g.setFont(new Font("Arial", Font.BOLD, 12));
+        g.setColor(new Color(150, 150, 150)); // Cinza secundário
+        drawCentered(g, "[ R ] Tentar Novamente   |   [ C ] Curiosidades   |   [ ESC ] Sair", w, pY + 165);
     }
 
     public void renderVictory(Graphics2D g, int w, int h) {
-        g.setColor(new Color(0, 0, 0, 160));
+        renderVictory(g, w, h, 0, 0);
+    }
+
+    /** Versão extendida com stats. Mostra wave e RF acumulados. */
+    public void renderVictory(Graphics2D g, int w, int h, int waveReached, int rfBanked) {
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,     RenderingHints.VALUE_ANTIALIAS_ON);
+
+        if (victoryFx == null) victoryFx = new VictoryFx(w, h);
+        victoryFx.update();
+        long now = System.currentTimeMillis();
+        float t = (now - victoryFx.startTime) / 1000f;
+
+        // 1. Vignette radial verde
+        Point2D center = new Point2D.Float(w / 2f, h / 2f);
+        float radius = Math.max(w, h);
+        g.setPaint(new RadialGradientPaint(center, radius,
+                new float[]{0f, 0.7f},
+                new Color[]{new Color(25, 70, 40, 220), new Color(0, 0, 0, 245)}));
         g.fillRect(0, 0, w, h);
 
-        g.setFont(new Font("Arial", Font.BOLD, 48));
-        g.setColor(new Color(80, 255, 120));
-        drawCentered(g, "FLORESTA SALVA!", w, h / 2 - 20);
+        // 2. Raios de luz radiais pulsantes
+        drawGodRays(g, w, h, t);
 
-        g.setFont(new Font("Arial", Font.PLAIN, 20));
-        g.setColor(Color.WHITE);
-        drawCentered(g, "Você defendeu a floresta!  |  [R] jogar novamente", w, h / 2 + 30);
+        // 3. Confete caindo
+        victoryFx.renderConfetti(g);
+
+        // 4. Painel central com efeitos
+        int pW = 680, pH = 280;
+        int pX = (w - pW) / 2, pY = (h - pH) / 2;
+
+        // Halo dourado atrás do card
+        g.setPaint(new RadialGradientPaint(
+                new Point2D.Float(w / 2f, h / 2f), pW * 0.9f,
+                new float[]{0f, 1f},
+                new Color[]{new Color(241, 196, 15, 80), new Color(241, 196, 15, 0)}));
+        g.fillRect(pX - 200, pY - 100, pW + 400, pH + 200);
+
+        // Fundo do card
+        g.setColor(new Color(10, 18, 14, 235));
+        g.fillRoundRect(pX, pY, pW, pH, 18, 18);
+        // Borda dourada com pulsação
+        float pulse = 0.5f + 0.5f * (float) Math.sin(t * 2);
+        int borderAlpha = (int) (180 + 75 * pulse);
+        g.setColor(new Color(241, 196, 15, borderAlpha));
+        g.setStroke(new BasicStroke(3.5f));
+        g.drawRoundRect(pX, pY, pW, pH, 18, 18);
+        g.setStroke(new BasicStroke(1));
+
+        // 5. Coroa estilizada acima do título
+        drawCrown(g, w / 2, pY + 18, t);
+
+        // 6. Título com escala pulsante e shine sweep
+        drawVictoryTitle(g, w, pY + 95, t);
+
+        // 7. Subtítulo
+        g.setFont(new Font("Arial", Font.PLAIN, 18));
+        g.setColor(new Color(230, 240, 232));
+        drawCentered(g, "Conseguiste expelir todos os invasores da Amazônia!", w, pY + 138);
+
+        g.setFont(new Font("Arial", Font.ITALIC, 14));
+        g.setColor(new Color(160, 200, 170));
+        drawCentered(g, "A natureza agradece o teu comando sagaz.", w, pY + 162);
+
+        // 8. Stats em duas caixas
+        drawVictoryStat(g, pX + 60, pY + 190, 220, 60, "WAVES VENCIDAS", String.valueOf(waveReached),
+                        new Color(46, 204, 113));
+        drawVictoryStat(g, pX + pW - 60 - 220, pY + 190, 220, 60, "RF ACUMULADOS", rfBanked + " RF",
+                        new Color(241, 196, 15));
+
+        // 9. Controles
+        g.setFont(new Font("Arial", Font.BOLD, 13));
+        g.setColor(new Color(180, 200, 185));
+        drawCentered(g, "[ R ] Novo Jogo    |    [ C ] Curiosidades    |    [ ESC ] Sair", w, pY + pH - 18);
+    }
+
+    private void drawGodRays(Graphics2D g, int w, int h, float t) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, 0.12f));
+        int rays = 12;
+        int cx = w / 2, cy = h / 2;
+        int len = Math.max(w, h);
+        for (int i = 0; i < rays; i++) {
+            double a = (Math.PI * 2 * i / rays) + t * 0.15;
+            int x1 = cx + (int)(Math.cos(a) * len);
+            int y1 = cy + (int)(Math.sin(a) * len);
+            int x2 = cx + (int)(Math.cos(a + 0.18) * len);
+            int y2 = cy + (int)(Math.sin(a + 0.18) * len);
+            Polygon p = new Polygon(new int[]{cx, x1, x2}, new int[]{cy, y1, y2}, 3);
+            g2.setColor(new Color(241, 196, 15));
+            g2.fillPolygon(p);
+        }
+        g2.dispose();
+    }
+
+    private void drawCrown(Graphics2D g, int cx, int cy, float t) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        float scale = 1f + 0.06f * (float) Math.sin(t * 3);
+        g2.translate(cx, cy + 14);
+        g2.scale(scale, scale);
+
+        // 3 pontas
+        int[] xs = {-20, -10, 0, 10, 20, 14, -14};
+        int[] ys = {6, -10, 4, -14, 6, 16, 16};
+        g2.setColor(new Color(241, 196, 15));
+        g2.fillPolygon(xs, ys, xs.length);
+        g2.setColor(new Color(180, 130, 20));
+        g2.setStroke(new BasicStroke(2f));
+        g2.drawPolygon(xs, ys, xs.length);
+
+        // 3 gemas
+        g2.setColor(new Color(231, 76, 60));
+        g2.fillOval(-12, 0, 6, 6);
+        g2.setColor(new Color(46, 204, 113));
+        g2.fillOval(-3, -2, 6, 6);
+        g2.setColor(new Color(52, 152, 219));
+        g2.fillOval(6, 0, 6, 6);
+
+        g2.dispose();
+    }
+
+    private void drawVictoryTitle(Graphics2D g, int w, int y, float t) {
+        String title = "FLORESTA PROTEGIDA!";
+        float pulse = 1f + 0.025f * (float) Math.sin(t * 2.5);
+        g.setFont(new Font("Arial", Font.BOLD, 48));
+        FontMetrics fm = g.getFontMetrics();
+        int titleW = fm.stringWidth(title);
+
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.translate(w / 2f, y);
+        g2.scale(pulse, pulse);
+        g2.translate(-w / 2f, -y);
+
+        int x = (w - titleW) / 2;
+        // Halo
+        g2.setColor(new Color(46, 204, 113, 50));
+        for (int i = 6; i > 0; i -= 2) {
+            g2.drawString(title, x - i, y);
+            g2.drawString(title, x + i, y);
+            g2.drawString(title, x, y - i);
+            g2.drawString(title, x, y + i);
+        }
+
+        // Sombra
+        g2.setColor(new Color(0, 0, 0, 200));
+        g2.drawString(title, x + 3, y + 3);
+
+        // Texto principal verde
+        g2.setColor(new Color(60, 230, 130));
+        g2.drawString(title, x, y);
+
+        // Shine sweep
+        Shape oldClip = g2.getClip();
+        g2.setClip(x, y - fm.getAscent(), titleW, fm.getAscent() + fm.getDescent());
+        float sweep = ((t * 0.4f) % 1f) * (titleW + 200) - 100;
+        g2.setPaint(new GradientPaint(
+                x + sweep - 60, 0, new Color(255, 255, 255, 0),
+                x + sweep, 0, new Color(255, 255, 255, 180),
+                false));
+        g2.drawString(title, x, y);
+        g2.setPaint(new GradientPaint(
+                x + sweep, 0, new Color(255, 255, 255, 180),
+                x + sweep + 60, 0, new Color(255, 255, 255, 0),
+                false));
+        g2.drawString(title, x, y);
+        g2.setClip(oldClip);
+
+        g2.dispose();
+    }
+
+    private void drawVictoryStat(Graphics2D g, int x, int y, int w, int h, String label, String value, Color accent) {
+        g.setColor(new Color(20, 30, 24, 220));
+        g.fillRoundRect(x, y, w, h, 10, 10);
+        g.setColor(accent);
+        g.setStroke(new BasicStroke(2f));
+        g.drawRoundRect(x, y, w, h, 10, 10);
+        g.setStroke(new BasicStroke(1));
+
+        g.setFont(new Font("Arial", Font.BOLD, 10));
+        g.setColor(new Color(140, 160, 145));
+        FontMetrics fm = g.getFontMetrics();
+        g.drawString(label, x + (w - fm.stringWidth(label)) / 2, y + 18);
+
+        g.setFont(new Font("Arial", Font.BOLD, 26));
+        g.setColor(accent);
+        fm = g.getFontMetrics();
+        g.drawString(value, x + (w - fm.stringWidth(value)) / 2, y + 46);
+    }
+
+    // ── Partículas de confete ─────────────────────────────
+
+    private static class VictoryFx {
+        long startTime = System.currentTimeMillis();
+        long lastFrame = startTime;
+        java.util.List<Confetti> confetti = new java.util.ArrayList<>();
+        java.util.Random rng = new java.util.Random(7);
+        int width, height;
+
+        VictoryFx(int w, int h) {
+            this.width = w; this.height = h;
+            for (int i = 0; i < 100; i++) confetti.add(spawn(false));
+        }
+
+        Confetti spawn(boolean fromTop) {
+            Confetti c = new Confetti();
+            c.x = rng.nextFloat() * width;
+            c.y = fromTop ? -10 : rng.nextFloat() * height;
+            c.vy = 40 + rng.nextFloat() * 120;
+            c.vx = (rng.nextFloat() - 0.5f) * 40;
+            c.rot = rng.nextFloat() * (float) Math.PI * 2;
+            c.spin = (rng.nextFloat() - 0.5f) * 6;
+            c.size = 5 + rng.nextInt(7);
+            Color[] palette = {
+                    new Color(241, 196, 15),
+                    new Color(46, 204, 113),
+                    new Color(231, 76, 60),
+                    new Color(52, 152, 219),
+                    new Color(220, 220, 220),
+                    new Color(155, 89, 182)
+            };
+            c.color = palette[rng.nextInt(palette.length)];
+            c.shape = rng.nextInt(3);
+            return c;
+        }
+
+        void update() {
+            long now = System.currentTimeMillis();
+            float dt = Math.min(0.05f, (now - lastFrame) / 1000f);
+            lastFrame = now;
+            for (Confetti c : confetti) {
+                c.x += c.vx * dt;
+                c.y += c.vy * dt;
+                c.rot += c.spin * dt;
+                if (c.y > height + 20) {
+                    Confetti respawn = spawn(true);
+                    c.x = respawn.x; c.y = -10;
+                    c.vx = respawn.vx; c.vy = respawn.vy;
+                }
+            }
+        }
+
+        void renderConfetti(Graphics2D g) {
+            for (Confetti c : confetti) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.translate(c.x, c.y);
+                g2.rotate(c.rot);
+                g2.setColor(c.color);
+                switch (c.shape) {
+                    case 0: g2.fillRect(-c.size / 2, -c.size / 4, c.size, c.size / 2); break;
+                    case 1: g2.fillOval(-c.size / 2, -c.size / 2, c.size, c.size); break;
+                    default: g2.fillPolygon(
+                            new int[]{-c.size / 2, c.size / 2, 0},
+                            new int[]{c.size / 2, c.size / 2, -c.size / 2}, 3);
+                }
+                g2.dispose();
+            }
+        }
+    }
+
+    private static class Confetti {
+        float x, y, vx, vy, rot, spin;
+        int size, shape;
+        Color color;
     }
 
     private void drawCentered(Graphics2D g, String text, int w, int y) {

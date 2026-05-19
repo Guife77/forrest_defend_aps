@@ -19,8 +19,8 @@ public class BirdDefense extends Tower {
                 Constants.BIRD_DAMAGE,
                 Constants.BIRD_RANGE,
                 AttackType.PROJECTILE);
-        this.attackCooldownMax = 40;
-        anim = new Arara("public/arara.png", 4);
+        this.attackCooldownMax = 28;
+        anim = new Arara("arara"); // Carrega a base do nome "arara"
     }
 
     @Override
@@ -37,6 +37,8 @@ public class BirdDefense extends Tower {
             double dist = Math.hypot(e.getX() - x, e.getY() - y);
             if (dist <= range) {
                 e.takeDamage(damage, attackType);
+                anim.playAttack();
+                game.utils.AudioPlayer.play("public/arara_attack.wav");
                 resetCooldown();
                 break;
             }
@@ -50,6 +52,6 @@ public class BirdDefense extends Tower {
 
     @Override
     public void render(Graphics2D g) {
-        anim.render(g, (int) x - anim.getFrameWidth() / 2, (int) y - anim.getFrameHeight() / 2);
+        anim.render(g, (int) x, (int) y);
     }
 }

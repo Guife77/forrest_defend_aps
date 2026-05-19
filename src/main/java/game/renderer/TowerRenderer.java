@@ -2,6 +2,7 @@ package game.renderer;
 
 import game.defenses.BarrierDefense;
 import game.defenses.BirdDefense;
+import game.defenses.SpiderDefense;
 import game.defenses.TreeDefense;
 import game.entities.Tower;
 
@@ -34,17 +35,19 @@ public class TowerRenderer {
             if (!t.isAlive()) continue;
             int tx = (int) t.getX(), ty = (int) t.getY();
 
+            // Intercepta torres com sprite animado (Arara, Aranha, Açaçu, Barreira)
+            if (t instanceof BirdDefense || t instanceof SpiderDefense || t instanceof TreeDefense
+                    || t instanceof BarrierDefense) {
+                g.setStroke(new BasicStroke(1));
+                t.render(g);
+                drawHp(g, t, tx, ty);
+                continue;
+            }
+
             Color c = color(t);
 
-            if (t instanceof BarrierDefense) {
-                // Barreira: quadrado marrom
-                g.setColor(c);
-                g.fillRect(tx - R, ty - R, R * 2, R * 2);
-                g.setColor(c.darker());
-                g.setStroke(new BasicStroke(2));
-                g.drawRect(tx - R, ty - R, R * 2, R * 2);
-            } else {
-                // Árvore / Arara: círculo com sombra
+            {
+                // Árvore: círculo com sombra (A Arara não entra mais aqui!)
                 g.setColor(new Color(0, 0, 0, 50));
                 g.fillOval(tx - R + 2, ty - R + 2, R * 2, R * 2);
                 g.setColor(c);
@@ -52,18 +55,10 @@ public class TowerRenderer {
                 g.setColor(c.darker());
                 g.setStroke(new BasicStroke(2));
                 g.drawOval(tx - R, ty - R, R * 2, R * 2);
-
-                // Para BirdDefense, usa o próprio render dela (sprite)
-                if (t instanceof BirdDefense) {
-                    g.setStroke(new BasicStroke(1));
-                    t.render(g); // delega para o render da BirdDefense
-                    drawHp(g, t, tx, ty);
-                    continue;
-                }
             }
 
             g.setStroke(new BasicStroke(1));
-            // Ícone
+            // Ícone para as outras torres
             g.setColor(Color.WHITE);
             g.setFont(new Font("Arial", Font.BOLD, 11));
             g.drawString(icon(t), tx - 4, ty + 4);

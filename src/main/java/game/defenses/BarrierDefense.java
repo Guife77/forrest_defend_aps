@@ -1,16 +1,19 @@
 package game.defenses;
 
+import game.animation.BarrierArt;
 import game.entities.AttackType;
 import game.entities.Enemy;
 import game.entities.Tower;
 import game.utils.Constants;
+import game.utils.GameClock;
 
-import java.awt.*;
 import java.util.List;
 
 public class BarrierDefense extends Tower {
 
     private static final double PHYSICAL_RESISTANCE = 0.5;
+
+    private final long spawnTime = GameClock.now();
 
     public BarrierDefense() {
         super("Barreira",
@@ -31,5 +34,9 @@ public class BarrierDefense extends Tower {
     }
 
     @Override
-    public void render(java.awt.Graphics2D g) { /* feito pelo TowerRenderer */ }
+    public void render(java.awt.Graphics2D g) {
+        float hpRatio = (float) Math.max(0.0, hp / maxHp);
+        float phase = (GameClock.now() - spawnTime) / 1000f;
+        BarrierArt.render(g, (int) x, (int) y, hpRatio, phase);
+    }
 }
