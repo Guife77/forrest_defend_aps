@@ -171,83 +171,186 @@ public class HUD {
     // ── Volume widget ──────────────────────────────────────
     private static final int VOL_X = 15;
     private static final int VOL_Y = 50;
-    private static final int VOL_W = 158;
-    private static final int VOL_H = 32;
-    private static final int VOL_MUTE_BTN_W = 30;
-    private static final int VOL_BTN_W = 24;
-    private static final int VOL_BAR_X = VOL_X + VOL_MUTE_BTN_W + VOL_BTN_W + 8;
-    private static final int VOL_BAR_W = 48;
+    private static final int VOL_W = 222;
+    private static final int VOL_H = 42;
+    private static final int VOL_MUTE_BTN_W = 38;
+    private static final int VOL_BTN_W = 28;
+    private static final int VOL_BAR_X = VOL_X + VOL_MUTE_BTN_W + VOL_BTN_W + 10;
+    private static final int VOL_BAR_W = 76;
+    private static final int VOL_PCT_W = 36;
+
+    private float displayedVolume = 0.7f;
 
     private void drawVolumeWidget(Graphics2D g) {
         int x = VOL_X, y = VOL_Y, w = VOL_W, h = VOL_H;
         boolean muted = game.utils.AudioPlayer.isMuted();
-        float vol = game.utils.AudioPlayer.getRawMusicVolume();
-        Color accent = muted ? new Color(150, 60, 60) : new Color(46, 204, 113);
+        float targetVol = muted ? 0f : game.utils.AudioPlayer.getRawMusicVolume();
 
-        // Card de fundo
-        g.setColor(new Color(15, 20, 15, 200));
-        g.fillRoundRect(x, y, w, h, 10, 10);
-        g.setColor(accent);
-        g.setStroke(new BasicStroke(2f));
-        g.drawRoundRect(x, y, w, h, 10, 10);
-        g.setStroke(new BasicStroke(1));
+        // Easing para preenchimento suave da barra
+        displayedVolume += (targetVol - displayedVolume) * 0.18f;
+        if (Math.abs(targetVol - displayedVolume) < 0.001f) displayedVolume = targetVol;
 
-        // Ícone de mute/som (clicável)
-        drawSpeakerIcon(g, x + 8, y + 8, 16, 16, muted, accent);
+        Color accent = muted ? new Color(190, 75, 65) : new Color(56, 220, 130);
+        Color accentDeep = muted ? new Color(120, 40, 35) : new Color(28, 145, 80);
+
+        // Card de fundo com gradiente vertical sutil
+        Graphics2D gc = (Graphics2D) g.create();
+        gc.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        GradientPaint cardBg = new GradientPaint(
+                x, y, new Color(22, 30, 25, 235),
+                x, y + h, new Color(10, 16, 12, 235));
+        gc.setPaint(cardBg);
+        gc.fillRoundRect(x, y, w, h, 14, 14);
+
+        // Borda
+        gc.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 220));
+        gc.setStroke(new BasicStroke(2f));
+        gc.drawRoundRect(x, y, w, h, 14, 14);
+        gc.setStroke(new BasicStroke(1));
+
+        // Realce superior interno
+        gc.setColor(new Color(255, 255, 255, 18));
+        gc.fillRoundRect(x + 2, y + 2, w - 4, h / 2 - 2, 12, 12);
+
+        // Ícone do alto-falante com ondas animadas
+        drawSpeakerIcon(gc, x + 9, y + h / 2 - 11, 22, 22, muted, accent);
 
         // Botão "-"
         int minusX = x + VOL_MUTE_BTN_W + 2;
-        int minusY = y + 4;
-        drawVolButton(g, minusX, minusY, VOL_BTN_W, h - 8, "-", accent);
+        int minusY = y + 6;
+        drawVolButton(gc, minusX, minusY, VOL_BTN_W, h - 12, "−", accent, accentDeep);
 
-        // Barra de volume
+        // Barra de volume com gradiente e brilho
         int barX = VOL_BAR_X;
-        int barY = y + h / 2 - 4;
-        g.setColor(new Color(40, 50, 42));
-        g.fillRoundRect(barX, barY, VOL_BAR_W, 8, 4, 4);
-        int fillW = (int) (VOL_BAR_W * (muted ? 0f : vol));
-        g.setColor(accent);
-        g.fillRoundRect(barX, barY, fillW, 8, 4, 4);
-        g.setColor(new Color(0, 0, 0, 80));
-        g.drawRoundRect(barX, barY, VOL_BAR_W, 8, 4, 4);
+        int barH = 12;
+        int barY = y + h / 2 - barH / 2;
+        drawVolumeBar(gc, barX, barY, VOL_BAR_W, barH, displayedVolume, muted, accent, accentDeep);
 
         // Botão "+"
-        int plusX = barX + VOL_BAR_W + 6;
-        int plusY = y + 4;
-        drawVolButton(g, plusX, plusY, VOL_BTN_W, h - 8, "+", accent);
+        int plusX = barX + VOL_BAR_W + 8;
+        int plusY = y + 6;
+        drawVolButton(gc, plusX, plusY, VOL_BTN_W, h - 12, "+", accent, accentDeep);
+
+        // Label de porcentagem
+        int pctX = plusX + VOL_BTN_W + 4;
+        drawVolumePercent(gc, pctX, y, VOL_PCT_W, h, muted ? -1 : Math.round(targetVol * 100), accent);
+
+        gc.dispose();
     }
 
-    private void drawVolButton(Graphics2D g, int x, int y, int w, int h, String label, Color accent) {
-        g.setColor(new Color(30, 42, 34, 230));
-        g.fillRoundRect(x, y, w, h, 6, 6);
+    private void drawVolumeBar(Graphics2D g, int x, int y, int w, int h, float vol, boolean muted,
+                                Color accent, Color accentDeep) {
+        // Trilho de fundo (escuro com sombra interna)
+        g.setColor(new Color(8, 14, 10));
+        g.fillRoundRect(x, y, w, h, h, h);
+        g.setColor(new Color(0, 0, 0, 120));
+        g.drawRoundRect(x, y, w, h, h, h);
+
+        if (vol > 0) {
+            int fillW = Math.max(h, (int) (w * vol));
+            // Preenchimento com gradiente vertical
+            GradientPaint barGrad = new GradientPaint(
+                    x, y, accent,
+                    x, y + h, accentDeep);
+            g.setPaint(barGrad);
+            g.fillRoundRect(x, y, fillW, h, h, h);
+
+            // Brilho superior
+            g.setColor(new Color(255, 255, 255, 90));
+            g.fillRoundRect(x + 2, y + 2, fillW - 4, h / 2 - 1, h / 2, h / 2);
+
+            // Ponta brilhante no fim da barra
+            if (!muted && fillW < w) {
+                int knobR = h - 2;
+                g.setColor(accent.brighter());
+                g.fillOval(x + fillW - knobR / 2, y + (h - knobR) / 2, knobR, knobR);
+                g.setColor(Color.WHITE);
+                g.fillOval(x + fillW - knobR / 2 + 2, y + (h - knobR) / 2 + 2, knobR / 3, knobR / 3);
+            }
+        }
+    }
+
+    private void drawVolumePercent(Graphics2D g, int x, int y, int w, int h, int pct, Color accent) {
+        g.setFont(new Font("Arial", Font.BOLD, 13));
+        FontMetrics fm = g.getFontMetrics();
+        String label = (pct < 0) ? "OFF" : (pct + "%");
         g.setColor(accent);
-        g.drawRoundRect(x, y, w, h, 6, 6);
-        g.setFont(new Font("Arial", Font.BOLD, 14));
+        g.drawString(label, x + (w - fm.stringWidth(label)) / 2,
+                     y + (h + fm.getAscent()) / 2 - 4);
+    }
+
+    private void drawVolButton(Graphics2D g, int x, int y, int w, int h, String label,
+                                Color accent, Color accentDeep) {
+        // Fundo com gradiente
+        GradientPaint bg = new GradientPaint(x, y, new Color(40, 55, 45), x, y + h, new Color(20, 30, 24));
+        g.setPaint(bg);
+        g.fillRoundRect(x, y, w, h, 8, 8);
+
+        // Borda em accent suave
+        g.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 170));
+        g.setStroke(new BasicStroke(1.5f));
+        g.drawRoundRect(x, y, w, h, 8, 8);
+        g.setStroke(new BasicStroke(1));
+
+        // Realce superior
+        g.setColor(new Color(255, 255, 255, 30));
+        g.fillRoundRect(x + 2, y + 2, w - 4, h / 2 - 1, 6, 6);
+
+        // Texto
+        g.setFont(new Font("Arial", Font.BOLD, 16));
         FontMetrics fm = g.getFontMetrics();
         g.setColor(Color.WHITE);
         g.drawString(label, x + (w - fm.stringWidth(label)) / 2,
-                     y + (h + fm.getAscent()) / 2 - 3);
+                     y + (h + fm.getAscent()) / 2 - 4);
     }
 
     private void drawSpeakerIcon(Graphics2D g, int x, int y, int w, int h, boolean muted, Color accent) {
-        g.setColor(accent);
-        // Caixa do alto-falante
-        int boxW = w / 2;
-        int[] xs = { x, x + boxW, x + w, x + w, x + boxW, x };
+        long t = System.currentTimeMillis();
+        // Corpo do alto-falante (cone trapezoidal)
+        int boxW = w * 2 / 5;
+        int[] xs = { x, x + boxW, x + w / 2 + 2, x + w / 2 + 2, x + boxW, x };
         int[] ys = { y + h / 3, y + h / 3, y, y + h, y + h * 2 / 3, y + h * 2 / 3 };
+
+        // Sombra do cone
+        g.setColor(new Color(0, 0, 0, 80));
+        for (int i = 0; i < xs.length; i++) xs[i] += 1;
+        for (int i = 0; i < ys.length; i++) ys[i] += 1;
+        g.fillPolygon(xs, ys, 6);
+        for (int i = 0; i < xs.length; i++) xs[i] -= 1;
+        for (int i = 0; i < ys.length; i++) ys[i] -= 1;
+
+        g.setColor(accent);
         g.fillPolygon(xs, ys, 6);
 
+        // Highlight no cone
+        g.setColor(new Color(255, 255, 255, 100));
+        g.drawLine(x + 1, y + h / 3 + 1, x + boxW - 1, y + h / 3 + 1);
+
         if (muted) {
-            // X vermelho cortando
+            // X vermelho atravessando
             g.setColor(new Color(231, 76, 60));
-            g.setStroke(new BasicStroke(2.5f));
-            g.drawLine(x + w / 2, y, x + w, y + h);
-            g.drawLine(x + w, y, x + w / 2, y + h);
+            g.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            int wx1 = x + w / 2 + 4;
+            int wy1 = y + 2;
+            int wx2 = x + w - 1;
+            int wy2 = y + h - 2;
+            g.drawLine(wx1, wy1, wx2, wy2);
+            g.drawLine(wx2, wy1, wx1, wy2);
             g.setStroke(new BasicStroke(1));
         } else {
-            // Ondas de som
-            g.setStroke(new BasicStroke(1.8f));
-            g.drawArc(x + w - 4, y + 2, 8, h - 4, -60, 120);
+            // 3 ondas concêntricas pulsantes
+            float volume = game.utils.AudioPlayer.getRawMusicVolume();
+            g.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            for (int i = 0; i < 3; i++) {
+                float phase = (float) ((t * 0.003 + i * 0.33) % 1.0);
+                int alpha = (int) (220 * (1 - phase) * Math.min(1f, volume * 2));
+                if (alpha < 10) continue;
+                int waveR = (int) (6 + phase * 8);
+                g.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), Math.min(255, alpha)));
+                int wx = x + w / 2 + 3;
+                int wy = y + h / 2;
+                g.drawArc(wx - waveR, wy - waveR, waveR * 2, waveR * 2, -45, 90);
+            }
             g.setStroke(new BasicStroke(1));
         }
     }
@@ -257,7 +360,7 @@ public class HUD {
         if (x < VOL_X || x > VOL_X + VOL_W || y < VOL_Y || y > VOL_Y + VOL_H) return null;
         if (x < VOL_X + VOL_MUTE_BTN_W) return "vol_mute";
         if (x < VOL_X + VOL_MUTE_BTN_W + VOL_BTN_W + 4) return "vol_down";
-        if (x > VOL_BAR_X + VOL_BAR_W + 4) return "vol_up";
+        if (x > VOL_BAR_X + VOL_BAR_W + 4 && x < VOL_BAR_X + VOL_BAR_W + 4 + VOL_BTN_W + 4) return "vol_up";
         return null;
     }
 
