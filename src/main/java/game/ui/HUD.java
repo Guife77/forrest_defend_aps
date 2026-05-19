@@ -104,6 +104,8 @@ public class HUD {
 
         // Selo de velocidade flutuante no canto superior esquerdo
         drawSpeedBadge(g, speedMultiplier);
+        // Widget de volume logo abaixo do selo de velocidade
+        drawVolumeWidget(g);
     }
 
     private void renderFloatingWaveInfo(Graphics2D g, WaveManager waves, int screenW) {
@@ -164,6 +166,99 @@ public class HUD {
         g.setFont(new Font("Arial", Font.BOLD, 11));
         g.setColor(selected ? new Color(241, 196, 15) : new Color(160, 145, 90));
         g.drawString(cost, x + 8, y + 34);
+    }
+
+    // ── Volume widget ──────────────────────────────────────
+    private static final int VOL_X = 15;
+    private static final int VOL_Y = 50;
+    private static final int VOL_W = 158;
+    private static final int VOL_H = 32;
+    private static final int VOL_MUTE_BTN_W = 30;
+    private static final int VOL_BTN_W = 24;
+    private static final int VOL_BAR_X = VOL_X + VOL_MUTE_BTN_W + VOL_BTN_W + 8;
+    private static final int VOL_BAR_W = 48;
+
+    private void drawVolumeWidget(Graphics2D g) {
+        int x = VOL_X, y = VOL_Y, w = VOL_W, h = VOL_H;
+        boolean muted = game.utils.AudioPlayer.isMuted();
+        float vol = game.utils.AudioPlayer.getRawMusicVolume();
+        Color accent = muted ? new Color(150, 60, 60) : new Color(46, 204, 113);
+
+        // Card de fundo
+        g.setColor(new Color(15, 20, 15, 200));
+        g.fillRoundRect(x, y, w, h, 10, 10);
+        g.setColor(accent);
+        g.setStroke(new BasicStroke(2f));
+        g.drawRoundRect(x, y, w, h, 10, 10);
+        g.setStroke(new BasicStroke(1));
+
+        // Ícone de mute/som (clicável)
+        drawSpeakerIcon(g, x + 8, y + 8, 16, 16, muted, accent);
+
+        // Botão "-"
+        int minusX = x + VOL_MUTE_BTN_W + 2;
+        int minusY = y + 4;
+        drawVolButton(g, minusX, minusY, VOL_BTN_W, h - 8, "-", accent);
+
+        // Barra de volume
+        int barX = VOL_BAR_X;
+        int barY = y + h / 2 - 4;
+        g.setColor(new Color(40, 50, 42));
+        g.fillRoundRect(barX, barY, VOL_BAR_W, 8, 4, 4);
+        int fillW = (int) (VOL_BAR_W * (muted ? 0f : vol));
+        g.setColor(accent);
+        g.fillRoundRect(barX, barY, fillW, 8, 4, 4);
+        g.setColor(new Color(0, 0, 0, 80));
+        g.drawRoundRect(barX, barY, VOL_BAR_W, 8, 4, 4);
+
+        // Botão "+"
+        int plusX = barX + VOL_BAR_W + 6;
+        int plusY = y + 4;
+        drawVolButton(g, plusX, plusY, VOL_BTN_W, h - 8, "+", accent);
+    }
+
+    private void drawVolButton(Graphics2D g, int x, int y, int w, int h, String label, Color accent) {
+        g.setColor(new Color(30, 42, 34, 230));
+        g.fillRoundRect(x, y, w, h, 6, 6);
+        g.setColor(accent);
+        g.drawRoundRect(x, y, w, h, 6, 6);
+        g.setFont(new Font("Arial", Font.BOLD, 14));
+        FontMetrics fm = g.getFontMetrics();
+        g.setColor(Color.WHITE);
+        g.drawString(label, x + (w - fm.stringWidth(label)) / 2,
+                     y + (h + fm.getAscent()) / 2 - 3);
+    }
+
+    private void drawSpeakerIcon(Graphics2D g, int x, int y, int w, int h, boolean muted, Color accent) {
+        g.setColor(accent);
+        // Caixa do alto-falante
+        int boxW = w / 2;
+        int[] xs = { x, x + boxW, x + w, x + w, x + boxW, x };
+        int[] ys = { y + h / 3, y + h / 3, y, y + h, y + h * 2 / 3, y + h * 2 / 3 };
+        g.fillPolygon(xs, ys, 6);
+
+        if (muted) {
+            // X vermelho cortando
+            g.setColor(new Color(231, 76, 60));
+            g.setStroke(new BasicStroke(2.5f));
+            g.drawLine(x + w / 2, y, x + w, y + h);
+            g.drawLine(x + w, y, x + w / 2, y + h);
+            g.setStroke(new BasicStroke(1));
+        } else {
+            // Ondas de som
+            g.setStroke(new BasicStroke(1.8f));
+            g.drawArc(x + w - 4, y + 2, 8, h - 4, -60, 120);
+            g.setStroke(new BasicStroke(1));
+        }
+    }
+
+    /** Hit-test pros botões do volume. Retorna "vol_up", "vol_down", "vol_mute" ou null. */
+    public String hitTestVolume(int x, int y) {
+        if (x < VOL_X || x > VOL_X + VOL_W || y < VOL_Y || y > VOL_Y + VOL_H) return null;
+        if (x < VOL_X + VOL_MUTE_BTN_W) return "vol_mute";
+        if (x < VOL_X + VOL_MUTE_BTN_W + VOL_BTN_W + 4) return "vol_down";
+        if (x > VOL_BAR_X + VOL_BAR_W + 4) return "vol_up";
+        return null;
     }
 
     /**

@@ -7,6 +7,8 @@ import java.io.IOException;
 public class AudioPlayer {
 
     private static Clip menuClip;
+    private static float musicVolume = 0.7f; // 0..1
+    private static boolean muted = false;
 
     // Toca um efeito sonoro rápido uma única vez (ex: tiro, construir torre)
     public static void play(String filePath) {
@@ -71,8 +73,49 @@ public class AudioPlayer {
             clip.setLoopPoints(0, endFrame);
             clip.loop(Clip.LOOP_CONTINUOUSLY);
             menuClip = clip;
+            applyVolume();
         } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
             System.out.println("Erro ao tocar música do menu: " + e.getMessage());
+        }
+    }
+
+    // ── Volume ──────────────────────────────────────────────
+
+    public static float getMusicVolume() { return muted ? 0f : musicVolume; }
+    public static float getRawMusicVolume() { return musicVolume; }
+    public static boolean isMuted() { return muted; }
+
+    public static void setMusicVolume(float v) {
+        musicVolume = Math.max(0f, Math.min(1f, v));
+        if (musicVolume > 0f) muted = false;
+        applyVolume();
+    }
+
+    public static void adjustMusicVolume(float delta) {
+        setMusicVolume(musicVolume + delta);
+    }
+
+    public static void toggleMute() {
+        muted = !muted;
+        applyVolume();
+    }
+
+    /** Aplica o volume atual ao clip da música em decibéis (escala logarítmica natural). */
+    private static void applyVolume() {
+        if (menuClip == null) return;
+        try {
+            FloatControl gain = (FloatControl) menuClip.getControl(FloatControl.Type.MASTER_GAIN);
+            float effective = muted ? 0f : musicVolume;
+            float dB;
+            if (effective <= 0.0001f) {
+                dB = gain.getMinimum();
+            } else {
+                dB = (float) (20.0 * Math.log10(effective));
+                dB = Math.max(gain.getMinimum(), Math.min(gain.getMaximum(), dB));
+            }
+            gain.setValue(dB);
+        } catch (IllegalArgumentException ignored) {
+            // Sistema sem suporte a MASTER_GAIN — silenciosamente ignora.
         }
     }
 

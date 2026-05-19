@@ -225,7 +225,7 @@ public class GameEngine extends MouseAdapter {
         if (inMenu) {
             if (keyCode == KeyEvent.VK_ENTER) {
                 inMenu = false;
-                AudioPlayer.stopMenuMusic();
+                // Música continua tocando durante o jogo
             } else if (keyCode == KeyEvent.VK_C) {
                 openCuriosity("menu");
             }
@@ -247,6 +247,21 @@ public class GameEngine extends MouseAdapter {
             case KeyEvent.VK_S: selectedTower = 'S'; break;
             case KeyEvent.VK_B: selectedTower = 'B'; break;
             case KeyEvent.VK_2: cycleSpeed(); break;
+            case KeyEvent.VK_PLUS:
+            case KeyEvent.VK_EQUALS:
+            case KeyEvent.VK_ADD:
+                AudioPlayer.adjustMusicVolume(0.1f);
+                showFeedback("Volume: " + Math.round(AudioPlayer.getRawMusicVolume() * 100) + "%");
+                break;
+            case KeyEvent.VK_MINUS:
+            case KeyEvent.VK_SUBTRACT:
+                AudioPlayer.adjustMusicVolume(-0.1f);
+                showFeedback("Volume: " + Math.round(AudioPlayer.getRawMusicVolume() * 100) + "%");
+                break;
+            case KeyEvent.VK_M:
+                AudioPlayer.toggleMute();
+                showFeedback(AudioPlayer.isMuted() ? "Som mutado" : "Som ligado");
+                break;
             case KeyEvent.VK_R:
                 if (gameOver || victory) init();
                 else showRanges = !showRanges;
@@ -274,7 +289,18 @@ public class GameEngine extends MouseAdapter {
         }
         if (inMenu || gameOver || victory) return;
 
-        // 1. Clique em card do HUD seleciona a torre correspondente
+        // 1. Clique nos botões de volume
+        String volAction = hud.hitTestVolume(lx, ly);
+        if (volAction != null) {
+            switch (volAction) {
+                case "vol_up":   AudioPlayer.adjustMusicVolume(0.1f); break;
+                case "vol_down": AudioPlayer.adjustMusicVolume(-0.1f); break;
+                case "vol_mute": AudioPlayer.toggleMute(); break;
+            }
+            return;
+        }
+
+        // 2. Clique em card do HUD seleciona a torre correspondente
         char card = hud.hitTestTowerCard(lx, ly, SCREEN_W, SCREEN_H);
         if (card != 0) {
             selectedTower = card;
