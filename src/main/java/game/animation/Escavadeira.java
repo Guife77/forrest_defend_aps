@@ -2,11 +2,10 @@ package game.animation;
 
 import game.utils.GameClock;
 
-import javax.imageio.ImageIO;
+import game.utils.Assets;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 
 public class Escavadeira {
 
@@ -31,19 +30,7 @@ public class Escavadeira {
 
     private void loadFrames(String baseName) {
         for (int i = 0; i < totalFrames; i++) {
-            String fileName = baseName + (i + 1) + ".png";
-            String[] candidates = {
-                    fileName,
-                    "src/main/resources/public/" + fileName,
-                    "public/" + fileName
-            };
-            BufferedImage img = null;
-            for (String path : candidates) {
-                try {
-                    File f = new File(path);
-                    if (f.exists()) { img = ImageIO.read(f); break; }
-                } catch (IOException ignored) {}
-            }
+            BufferedImage img = Assets.loadImage("public/" + baseName + (i + 1) + ".png");
             frames[i] = (img != null) ? img : new BufferedImage(DRAW_W, DRAW_H, BufferedImage.TYPE_INT_ARGB);
         }
     }

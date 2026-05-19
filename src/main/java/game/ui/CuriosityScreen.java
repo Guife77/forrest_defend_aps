@@ -6,13 +6,11 @@ import game.animation.Arara;
 import game.animation.Escavadeira;
 import game.animation.LumberjackArt;
 import game.animation.Poluicao;
+import game.utils.Assets;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -223,17 +221,7 @@ public class CuriosityScreen {
     }
 
     private void loadOncaSprite() {
-        String[] candidates = {
-                "public/onca1.png",
-                "src/main/resources/public/onca1.png",
-                "src/public/onca1.png"
-        };
-        for (String p : candidates) {
-            try {
-                File f = new File(p);
-                if (f.exists()) { oncaImg = ImageIO.read(f); return; }
-            } catch (IOException ignored) {}
-        }
+        oncaImg = Assets.loadImage("public/onca1.png");
     }
 
     private interface Page {

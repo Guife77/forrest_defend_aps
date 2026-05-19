@@ -2,11 +2,10 @@ package game.animation;
 
 import game.utils.GameClock;
 
-import javax.imageio.ImageIO;
+import game.utils.Assets;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 
 public class Arara {
 
@@ -28,29 +27,8 @@ public class Arara {
 
     private void loadFrames(String baseName) {
         for (int i = 0; i < 4; i++) {
-            String fileName = baseName + (i + 1) + ".png";
-            String[] candidates = {
-                    fileName,
-                    "src/main/resources/public/" + fileName,
-                    "public/" + fileName
-            };
-
-            BufferedImage img = null;
-            for (String path : candidates) {
-                try {
-                    File f = new File(path);
-                    if (f.exists()) { 
-                        img = ImageIO.read(f); 
-                        break; 
-                    }
-                } catch (IOException ignored) {}
-            }
-
-            if (img != null) {
-                frames[i] = img;
-            } else {
-                frames[i] = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
-            }
+            BufferedImage img = Assets.loadImage("public/" + baseName + (i + 1) + ".png");
+            frames[i] = (img != null) ? img : new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
         }
     }
 

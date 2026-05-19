@@ -1,12 +1,10 @@
 package game.animation;
 
+import game.utils.Assets;
 import game.utils.GameClock;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 
 /**
  * Sprite estático da poluição com flutuação suave (bobbing) e leve pulso de opacidade.
@@ -20,18 +18,7 @@ public class Poluicao {
     private final long birth = GameClock.now();
 
     public Poluicao() {
-        String[] candidates = {
-                "poluicao.png",
-                "src/main/resources/public/poluicao.png",
-                "src/public/poluicao.png",
-                "public/poluicao.png"
-        };
-        for (String path : candidates) {
-            try {
-                File f = new File(path);
-                if (f.exists()) { img = ImageIO.read(f); break; }
-            } catch (IOException ignored) {}
-        }
+        img = Assets.loadImage("public/poluicao.png");
     }
 
     public void render(Graphics g, int x, int y) {

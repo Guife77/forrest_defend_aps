@@ -1,10 +1,9 @@
 package game.animation;
 
-import javax.imageio.ImageIO;
+import game.utils.Assets;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 
 /**
  * Casa principal — renderiza Casa_Principal.png como a base do jogo.
@@ -18,19 +17,8 @@ public class CasaPrincipal {
     private static void ensureLoaded() {
         if (loaded) return;
         loaded = true;
-        String[] candidates = {
-                "Casa_Principal.png",
-                "src/main/resources/public/Casa_Principal.png",
-                "src/public/Casa_Principal.png",
-                "public/Casa_Principal.png"
-        };
-        for (String path : candidates) {
-            try {
-                File f = new File(path);
-                if (f.exists()) { img = ImageIO.read(f); return; }
-            } catch (IOException ignored) {}
-        }
-        System.out.println("[CasaPrincipal] Imagem não encontrada");
+        img = Assets.loadImage("public/Casa_Principal.png");
+        if (img == null) System.out.println("[CasaPrincipal] Imagem não encontrada");
     }
 
     /**

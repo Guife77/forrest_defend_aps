@@ -11,8 +11,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -156,21 +154,7 @@ public class GameWindow extends JPanel {
      * fica granulado no título e na taskbar.
      */
     private static void applyIcon(JFrame frame) {
-        String[] candidates = {
-                "public/icon_Forrest_Defend.png",
-                "src/main/resources/public/icon_Forrest_Defend.png",
-                "src/public/icon_Forrest_Defend.png",
-                "icon_Forrest_Defend.png"
-        };
-        BufferedImage original = null;
-        for (String path : candidates) {
-            try {
-                File f = new File(path);
-                if (!f.exists()) continue;
-                original = javax.imageio.ImageIO.read(f);
-                if (original != null) break;
-            } catch (IOException ignored) {}
-        }
+        BufferedImage original = game.utils.Assets.loadImage("public/icon_Forrest_Defend.png");
         if (original == null) {
             System.out.println("[Icon] icon_Forrest_Defend.png não encontrado");
             return;

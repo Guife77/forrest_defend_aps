@@ -1,12 +1,10 @@
 package game.animation;
 
+import game.utils.Assets;
 import game.utils.GameClock;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 
 /**
  * Árvore Açaçu (Hura crepitans) — defensora animada.
@@ -37,19 +35,7 @@ public class Acacu {
     }
 
     private BufferedImage loadFrame(String fileName) {
-        String[] candidates = {
-                fileName,
-                "src/main/resources/public/" + fileName,
-                "src/public/" + fileName,
-                "public/" + fileName
-        };
-        for (String path : candidates) {
-            try {
-                File f = new File(path);
-                if (f.exists()) return ImageIO.read(f);
-            } catch (IOException ignored) {}
-        }
-        return null;
+        return Assets.loadImage("public/" + fileName);
     }
 
     public void playAttack() {
