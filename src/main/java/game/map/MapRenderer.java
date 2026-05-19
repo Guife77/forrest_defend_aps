@@ -171,7 +171,7 @@ public class MapRenderer {
                     g.drawLine(px + i, py, px + i, py + ph);
                 }
 
-                // Realce superior esquerdo
+                // Realce superior esquerd
                 g.setColor(new Color(255, 255, 255, 20));
                 g.fillRect(px, py, pw, 3);
                 g.fillRect(px, py, 3, ph);
